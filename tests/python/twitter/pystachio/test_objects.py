@@ -40,4 +40,24 @@ def test_basic_interpolation():
   oe = ObjectEnvironment(a = {'b': 1})
   assert ObjectId.interpolate(ObjectId("a.b"), oe) == 1
   assert oe == {'a': {'b': 1}}
-  
+
+"""
+
+from twitter.pystachio import Object
+from twitter.pystachio.types import Float, Integer, String
+
+class Resources(Object):
+  cpu = Float(required=True)
+  ram = Integer(required=True)
+  disk = Integer
+
+class Process(Object):
+  name = String(required=True)
+  min_resources = Resources
+  max_resources = Resources(required=True)
+
+r = Resources(cpu = 1.0, disk = 1000)
+p = Process(name = "hello_world", min_resources = r)
+
+
+"""  

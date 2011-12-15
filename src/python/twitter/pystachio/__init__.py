@@ -1,7 +1,7 @@
 import copy
 from inspect import isclass
 import re
-from .types import Type
+from .types import Type, Empty
 
 class ObjectId(object):
   _COMPONENT_RE = re.compile(r'^\w+$')
@@ -129,5 +129,52 @@ class ObjectMetaclass(type):
     return type.__new__(mcls, name, parents, augmented_attributes)
 
 
-class Object(object):
+class Object(Type):
   __metaclass__ = ObjectMetaclass
+
+  def __init__(self, **kw):
+    self._schema_data = copy.deepcopy(kw)
+    self._environment = ObjectEnvironment()
+    type_parameters = dict((param, self._schema_data.pop(param))
+      for param in Type.PARAMETERS if param in self._schema_data)
+    Type.__init__(self, type_parameters)
+  
+  def _copy(self):
+    new_object = self.__class__(**self._schema_data)
+    new_object._environment = copy.deepcopy(self._environment)
+    return new_object
+
+  def bind(self, *args, **kw):
+    new_self = self._copy()
+    binding_environment = ObjectEnvironment(*args, **kw)
+    ObjectEnvironment.merge(new_self._environment, binding_environment)
+    return new_self
+  
+  def __call__(self, **kw):
+    new_self = self._copy()
+    for attr in kw:
+      if attr not in self.SCHEMA:
+        raise AttributeError('Unknown schema attribute %s' % attr)
+      new_self._schema_data[attr] = kw[attr]
+    return new_self
+
+  def __repr__(self):
+    return '%s(%s)' % (
+      self.__class__.__name__,
+      ', '.join('%s=%s' % (key, val) for key, val in self._schema_data.items())
+    )
+
+  @classmethod
+  def checker(cls):
+    def _checker(value):
+      if not isinstance(value, cls):
+        return False
+      for attr_name, attr_type in cls.SCHEMA.items():
+        if attr_name in value._schema_data:
+          if not attr_type.check(value._schema_data[attr_name]):
+            return False
+        else:
+          if not attr_type.check(Empty):
+            return False
+      return True
+    return _checker
