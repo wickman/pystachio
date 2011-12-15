@@ -24,48 +24,39 @@ class Type(object):
 
   def check(self, value=Empty):
     if self.required() or value is not Empty:
-      return self.checker()(value)
+      return self.checker(value)
     else:
       return True
 
+
 class String(Type):
   @classmethod
-  def checker(cls):
-    def _checker(value):
-      return isinstance(value, str)
-    return _checker
+  def checker(cls, value):
+    return isinstance(value, str)
 
 
 class Integer(Type):
   @classmethod
-  def checker(cls):
-    def _checker(value):
-      return isinstance(value, int)
-    return _checker
+  def checker(cls, value):
+    return isinstance(value, int)
 
 
 class Float(Type):
   @classmethod
-  def checker(cls):
-    def _checker(value):
-      return isinstance(value, float)
-    return _checker
+  def checker(cls, value):
+    return isinstance(value, float)
 
 
 class List(Type):
   @classmethod
-  def checker(cls):
-    def _checker(value):
-      return isinstance(value, Iterable)
-    return _checker
+  def checker(cls, value):
+    return isinstance(value, Iterable)
 
 
 class Map(Type):
   @classmethod
-  def checker(cls):
-    def _checker(value):
-      return isinstance(value, Mapping)
-    return _checker
+  def checker(cls, value):
+    return isinstance(value, Mapping)
 
 
 class CompositeMetaclass(type):
@@ -87,6 +78,7 @@ class CompositeMetaclass(type):
     augmented_attributes['SCHEMA'] = schema
     return type.__new__(mcls, name, parents, augmented_attributes)
 
+  
 
 class Composite(Type):
   __metaclass__ = CompositeMetaclass
@@ -124,17 +116,14 @@ class Composite(Type):
     )
 
   @classmethod
-  def checker(cls):
-    def _checker(value):
-      if not isinstance(value, cls):
-        return False
-      for attr_name, attr_type in cls.SCHEMA.items():
-        if attr_name in value._schema_data:
-          if not attr_type.check(value._schema_data[attr_name]):
-            return False
-        else:
-          if not attr_type.check():
-            return False
-      return True
-    return _checker
+  def checker(cls, value):
+    if not isinstance(value, cls):
+      return False
+    for attr_name, attr_type in cls.SCHEMA.items():
+      if attr_name in value._schema_data:
+        if not attr_type.check(value._schema_data[attr_name]):
+          return False
+      else:
+        if not attr_type.check():
+          return False
 
