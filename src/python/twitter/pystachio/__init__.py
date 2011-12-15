@@ -9,4 +9,5 @@ from types import (
   Float,
   Map,
   List,
-  Composite)
+  CompositeObject,
+  Required)
