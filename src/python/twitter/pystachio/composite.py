@@ -139,5 +139,6 @@ class Composite(ObjectBase):
         if type_check.ok():
           continue
         else:
-          return TypeCheck.failure('%s[%s] failed: %s' % (self.__class__.__name__, name, type_check.message()))
+          return TypeCheck.failure('%s[%s] failed: %s' % (self.__class__.__name__, name,
+            type_check.message()))
     return TypeCheck.success()

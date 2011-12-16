@@ -74,6 +74,19 @@ class ObjectBase(object):
     ObjectEnvironment.merge(new_self._environment, ObjectEnvironment(*args, **kw))
     return new_self
 
+  def in_scope(self, *args, **kw):
+    """
+      Scope this object to a parent environment (like bind but reversed.)
+    """
+    new_self = self.copy()
+    parent_environment = ObjectEnvironment(*args, **kw)
+    ObjectEnvironment.merge(parent_environment, new_self._environment)
+    new_self._environment = parent_environment
+    return new_self
+
+  def environment(self):
+    return self._environment
+
   def check(self):
     """
       Perform post-bind type checking.

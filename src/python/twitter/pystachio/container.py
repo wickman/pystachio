@@ -10,13 +10,6 @@ from objects import (
   TypeCheck)
 
 class ListContainer(ObjectBase):
-  """
-    TODO(wickman):
-
-    Consider what it would tkae for List to take a parameter, e.g.
-    List(Integer) or List(String).  As it is, it will be a challenge
-    to do interpolation without that type annotation.
-  """
   def __init__(self, vals):
     self._values = self._coerce_values(copy.deepcopy(vals))
     ObjectBase.__init__(self)
@@ -48,9 +41,22 @@ class ListContainer(ObjectBase):
       return TypeCheck.failure("%s values are not iterable." % self.__class__.__name__)
     for element in self._values:
       if not isinstance(element, self.TYPE):
-        raise TypeCheck.failure("Element in %s not of type %s: %s" % (self.__class__.__name__,
+        return TypeCheck.failure("Element in %s not of type %s: %s" % (self.__class__.__name__,
           self.TYPE.__name__, element))
+      else:
+        if not element.check().ok():
+          return TypeCheck.failure("Element in %s failed check: %s" % (self.__class__.__name__,
+            element.check().message()))
     return TypeCheck.success()
+
+  def interpolate(self):
+    unbound = set()
+    interpolated = []
+    for element in self._values:
+      einterp, eunbound = element.in_scope(self.environment()).interpolate()
+      interpolated.append(einterp)
+      unbound.update(eunbound)
+    return interpolated, list(unbound)
 
 
 def List(object_type):
@@ -61,12 +67,6 @@ def List(object_type):
 
 
 class MapContainer(ObjectBase):
-  """
-    TODO(wickman):
-
-    Consider what it would take for Map to take parameters, e.g.
-    Map(String, Process)
-  """
   def __init__(self, input_map):
     self._map = self._coerce_map(copy.deepcopy(input_map))
     ObjectBase.__init__(self)
@@ -94,11 +94,17 @@ class MapContainer(ObjectBase):
       return TypeCheck.failure("%s map is not a mapping." % self.__class__.__name__)
     for key, value in self._map.items():
       if not isinstance(key, self.KEYTYPE):
-        raise TypeCheck.failure("%s key %s is not of type %s" % (self.__class__.__name__,
+        return TypeCheck.failure("%s key %s is not of type %s" % (self.__class__.__name__,
           key, self.KEYTYPE.__name__))
       if not isinstance(value, self.VALUETYPE):
-        raise TypeCheck.failure("%s value %s is not of type %s" % (self.__class__.__name__,
+        return TypeCheck.failure("%s value %s is not of type %s" % (self.__class__.__name__,
           value, self.VALUETYPE.__name__))
+      if not key.check().ok():
+        return TypeCheck.failure("%s key %s failed check: %s" % (self.__class__.__name__,
+          key, key.check().message()))
+      if not value.check().ok():
+        return TypeCheck.failure("%s[%s] value %s failed check: %s" % (self.__class__.__name__,
+          key, value, value.check().message()))
     return TypeCheck.success()
 
 

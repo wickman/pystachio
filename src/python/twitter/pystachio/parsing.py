@@ -42,6 +42,9 @@ class ObjectId(object):
   def __eq__(self, other):
     return self._address == other._address
 
+  def __hash__(self):
+    return hash(self._address)
+
   @staticmethod
   def interpolate(oid, oenv):
     for component in oid.components():
