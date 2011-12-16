@@ -3,7 +3,10 @@ import types
 
 from collections import Iterable, Mapping
 from inspect import isclass
-from parsing import ObjectEnvironment
+from parsing import (
+  ObjectId,
+  ObjectEnvironment,
+  ObjectMustacheParser)
 
 
 class Empty(object):
@@ -47,6 +50,8 @@ class ObjectBase(object):
   """
     ObjectBase base class, encapsulating a set of variable bindings scoped to this object.
   """
+
+  class InterpolationError(Exception): pass
 
   @classmethod
   def checker(cls, obj):
@@ -105,6 +110,24 @@ class Object(ObjectBase):
   def __repr__(self):
     return '%s(%s)' % (self.__class__.__name__, self._value)
 
+  def interpolate(self):
+    if isinstance(self._value, basestring):
+      splits = ObjectMustacheParser.split(self._value)
+      joins, unbound = ObjectMustacheParser.join(splits, self._environment, strict=False)
+      if unbound:
+        return self, unbound
+      else:
+        self_copy = self.copy()
+        if hasattr(self_copy, 'coerce') and callable(self_copy.coerce):
+          self_copy._value = self_copy.coerce(joins)
+        else:
+          self_copy._value = joins
+        if not self_copy.check().ok():
+          raise ObjectBase.InterpolationError(self_copy.check().message())
+        else:
+          return self_copy, unbound
+    else:
+      return self, []
 
 class String(Object):
   @classmethod
