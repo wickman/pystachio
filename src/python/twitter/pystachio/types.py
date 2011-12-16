@@ -66,8 +66,7 @@ class ObjectBase(object):
       Bind environment variables into this object's scope.
     """
     new_self = self.copy()
-    binding_environment = ObjectEnvironment(*args, **kw)
-    ObjectEnvironment.merge(new_self._environment, binding_environment)
+    ObjectEnvironment.merge(new_self._environment, ObjectEnvironment(*args, **kw))
     return new_self
 
   def check(self):

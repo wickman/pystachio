@@ -51,6 +51,7 @@ class ObjectId(object):
         oenv = oenv[component]
     return oenv
 
+
 class ObjectMustacheParser(object):
   """
     Split strings on Mustache-style templates:
@@ -109,6 +110,7 @@ class ObjectMustacheParser(object):
       else:
         isplits.append(oid)
     return (''.join(map(str, isplits)), uninterpolated)
+
 
 class ObjectEnvironment(dict):
   """
