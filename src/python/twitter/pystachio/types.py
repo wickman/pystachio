@@ -76,11 +76,20 @@ class ObjectBase(object):
     """
     return self.checker(self)
 
+  def interpolate(self):
+    """
+      Return a copy of this object interpolated in the context of self._environment.
+    """
+    raise NotImplementedError
+
 
 class Object(ObjectBase):
   """
     A simply-valued object.
   """
+  class CoercionError(Exception):
+    def __init__(self, src, dst):
+      Exception.__init__(self, "Cannot coerce %s to %s" % (src, dst.__name__))
 
   def __init__(self, value):
     self._value = copy.deepcopy(value)
@@ -108,8 +117,12 @@ class String(Object):
     else:
       return TypeCheck.failure("%s not a string" % repr(obj._value))
 
-  def __init__(self, value):
-    Object.__init__(self, value)
+  @classmethod
+  def coerce(cls, value):
+    ACCEPTED_SOURCE_TYPES = (int, float, basestring)
+    if not isinstance(value, ACCEPTED_SOURCE_TYPES):
+      raise Object.CoercionError(value, cls)
+    return str(value)
 
 
 class Integer(Object):
@@ -117,10 +130,20 @@ class Integer(Object):
   def checker(cls, obj):
     if not isinstance(obj, Integer):
       return TypeCheck.failure("%s is not a subclass of Integer" % obj)
-    if isinstance(obj._value, int):
+    if isinstance(obj._value, (int, long)):
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not an integer" % repr(obj._value))
+
+  @classmethod
+  def coerce(cls, value):
+    ACCEPTED_SOURCE_TYPES = (int, float, basestring)
+    if not isinstance(value, ACCEPTED_SOURCE_TYPES):
+      raise Object.CoercionError(value, cls)
+    try:
+      return int(value)
+    except ValueError:
+      raise Object.CoercionError(value, cls)
 
 
 class Float(Object):
@@ -132,6 +155,17 @@ class Float(Object):
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not a float" % repr(obj._value))
+
+  @classmethod
+  def coerce(cls, value):
+    ACCEPTED_SOURCE_TYPES = (int, float, basestring)
+    if not isinstance(value, ACCEPTED_SOURCE_TYPES):
+      raise Object.CoercionError(value, cls)
+    try:
+      return float(value)
+    except ValueError:
+      raise Object.CoercionError(value, cls)
+
 
 
 class List(Object):
