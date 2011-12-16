@@ -5,6 +5,7 @@ from collections import Iterable, Mapping
 from inspect import isclass
 from .objects import ObjectEnvironment
 
+
 class Empty(object):
   pass
 
@@ -55,23 +56,12 @@ class ObjectBase(object):
     ObjectEnvironment.merge(new_self._environment, binding_environment)
     return new_self
   
-  def empty(self):
-    raise NotImplementedError
-
-  def _optional_check(self):
-    if self.empty():
-      return TypeCheck.success()
-    else:
-      return self.checker(self)
-
-  def _required_check(self):
+  def check(self):
     return self.checker(self)
 
-  check = _optional_check
-    
 
 class Object(ObjectBase):
-  def __init__(self, value=Empty):
+  def __init__(self, value):
     self._value = copy.deepcopy(value)
     ObjectBase.__init__(self)
   
@@ -80,9 +70,6 @@ class Object(ObjectBase):
     new_object._environment = copy.deepcopy(self._environment)
     return new_object
 
-  def empty(self):
-    return self._value is Empty
-
   def __repr__(self):
     return '%s(%s)' % (self.__class__.__name__, self._value)
 
@@ -90,6 +77,8 @@ class Object(ObjectBase):
 class String(Object):
   @classmethod
   def checker(cls, obj):
+    if not isinstance(obj, String):
+      return TypeCheck.failure("%s is not a subclass of String" % obj)
     if isinstance(obj._value, str):
       return TypeCheck.success()
     else:
@@ -133,28 +122,35 @@ class Map(Object):
 
 
 
+class TypeSignature(object):
+  def __init__(self, cls, required=False, default=Empty):
+    assert isclass(cls)
+    assert issubclass(cls, ObjectBase)
+    self._cls = cls
+    self._required = required
+    self._default = default
+
+  def klazz(self):
+    return self._cls
+
+  def required(self):
+    return self._required
+
+  def default(self):
+    return self._default
+
+  @staticmethod
+  def parse(sig):
+    if isclass(sig) and issubclass(sig, ObjectBase):
+      return TypeSignature(sig)
+    elif isinstance(sig, TypeSignature):
+      return sig
+
 def Required(cls):
-  # takes an Object and creates a new one whose
-  # type checker method [cls.BASE_CHECKER] is not skipped if
-  # an object is unassigned.
-  assert isclass(cls)
-  assert issubclass(cls, ObjectBase)
-  if cls.check == cls._required_check:
-    return cls
-  else:
-    # Ack, what is with the SCHEMA addition?
-    updated_attributes = { 'check': cls._required_check }
-    print 'Augmenting cls: %s' % cls
-    if hasattr(cls, 'SCHEMA'):
-      updated_attributes.update(copy.deepcopy(cls.SCHEMA))
-    return type.__new__(type, 'Required%s' % cls.__name__, (cls,), updated_attributes)
+  return TypeSignature(cls, required=True)
 
-
-def Default(cls, *args, **kw):
-  # takes an Object and creates a new one whose __init__ method is
-  # passed the *args,**kw should it otherwise be passed an empty param list
-  pass
-
+def Default(cls, default):
+  return TypeSignature(cls, required=False, default=default)
 
 
 class CompositeMetaclass(type):
@@ -162,8 +158,8 @@ class CompositeMetaclass(type):
   def extract_schema(attributes):
     schema = {}
     for attr_name, attr_value in attributes.items():
-      if isclass(attr_value) and issubclass(attr_value, ObjectBase):
-        schema[attr_name] = attr_value
+      sig = TypeSignature.parse(attr_value)
+      if sig: schema[attr_name] = sig
     for extracted_attribute in schema:
       attributes.pop(extracted_attribute)
     attributes['SCHEMA'] = schema
@@ -178,14 +174,29 @@ class CompositeObject(ObjectBase):
   __metaclass__ = CompositeMetaclass
   
   def __init__(self, **kw):
-    self._schema_check(kw)
-    self._schema_data = copy.deepcopy(kw)
+    self._init_schema_data()
+    self._update_schema_data(**copy.deepcopy(kw))
     ObjectBase.__init__(self)
-  
+
   def _schema_check(self, kw):
     for attr in kw:
       if attr not in self.SCHEMA:
         raise AttributeError('Unknown schema attribute %s' % attr)
+  
+  def _init_schema_data(self):
+    self._schema_data = {}
+    for attr in self.SCHEMA:
+      self._schema_data[attr] = self.SCHEMA[attr].default()
+  
+  def _update_schema_data(self, **kw):
+    for attr in kw:
+      if attr not in self.SCHEMA:
+        raise AttributeError('Unknown schema attribute %s' % attr)
+      schema_type = self.SCHEMA[attr]
+      if isinstance(kw[attr], schema_type.klazz()):
+        self._schema_data[attr] = kw[attr]
+      else:
+        self._schema_data[attr] = schema_type.klazz()(kw[attr])
 
   def copy(self):
     new_object = self.__class__(**self._schema_data)
@@ -193,47 +204,24 @@ class CompositeObject(ObjectBase):
     return new_object
 
   def __call__(self, **kw):
-    self._schema_check(kw)
     new_self = self.copy()
-    new_self._schema_data.update(copy.deepcopy(kw))
+    new_self._update_schema_data(**copy.deepcopy(kw))
     return new_self
 
   def __repr__(self):
     return '%s(%s)' % (
       self.__class__.__name__,
-      ', '.join('%s=%s' % (key, val) for key, val in self._schema_data.items())
+      ', '.join('%s=%s' % (key, val) for key, val in self._schema_data.items() if val is not Empty)
     )
 
-  def empty(self):
-    return self._schema_data == {}
-
-  def _recursive_check(self):
-    for attr_name, attr_type in self.SCHEMA.items():
-      if attr_name in self._schema_data:
-        if issubclass(attr_type, CompositeObject):
-          if not self._schema_data[attr_name].check().ok():
-            return TypeCheck.failure('%s[%s] failed: %s' % (
-              self.__class__.__name__, attr_name,
-              self._schema_data[attr_name].check().message()))
+  def check(self):
+    for name, signature in self.SCHEMA.items():
+      if self._schema_data[name] is Empty and signature.required():
+        return TypeCheck.failure('%s[%s] is required.' % (self.__class__.__name__, name))
+      elif self._schema_data[name] is not Empty:
+        type_check = self._schema_data[name].check()
+        if type_check.ok():
+          continue
         else:
-          if not attr_type(self._schema_data[attr_name]).check().ok():
-            return TypeCheck.failure('%s[%s] failed: %s' % (
-              self.__class__.__name__, attr_name,
-              attr_type(self._schema_data[attr_name]).check().message()))
-      else:
-        if not attr_type().check().ok():
-          return TypeCheck.failure('%s[%s] failed: %s' % (
-            self.__class__.__name__, attr_name,
-            attr_type().check().message()))
+          return TypeCheck.failure('%s[%s] failed: %s' % (self.__class__.__name__, name, type_check.message()))
     return TypeCheck.success()
-
-  def _optional_check(self):
-    if self.empty():
-      return TypeCheck.success()
-    else:
-      return self._recursive_check()
-  
-  def _required_check(self):
-    return self._recursive_check()
-  
-  check = _optional_check
