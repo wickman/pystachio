@@ -129,6 +129,7 @@ class Object(ObjectBase):
     else:
       return self, []
 
+
 class String(Object):
   @classmethod
   def checker(cls, obj):
@@ -187,28 +188,4 @@ class Float(Object):
       return float(value)
     except ValueError:
       raise Object.CoercionError(value, cls)
-
-
-
-class List(Object):
-  @classmethod
-  def checker(cls, obj):
-    if not isinstance(obj, List):
-      return TypeCheck.failure("%s is not a subclass of List" % obj)
-    if isinstance(obj._value, Iterable):
-      return TypeCheck.success()
-    else:
-      return TypeCheck.failure("%s not an iterable" % repr(obj._value))
-
-
-class Map(Object):
-  @classmethod
-  def checker(cls, obj):
-    if not isinstance(obj, Map):
-      return TypeCheck.failure("%s is not a subclass of Map" % obj)
-    if isinstance(obj._value, Mapping):
-      return TypeCheck.success()
-    else:
-      return TypeCheck.failure("%s not a mapping" % repr(obj._value))
-
 

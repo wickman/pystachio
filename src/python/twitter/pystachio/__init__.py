@@ -9,7 +9,9 @@ from objects import (
   Empty,
   String,
   Integer,
-  Float,
+  Float)
+
+from container import (
   Map,
   List)
 
