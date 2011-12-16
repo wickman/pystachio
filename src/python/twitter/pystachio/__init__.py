@@ -1,20 +1,19 @@
 # environment/stache binding
-from objects import (
+from parsing import (
   ObjectId,
   ObjectMustacheParser,
   ObjectEnvironment)
 
 # basic + composite types
-from types import (
+from objects import (
   Empty,
   String,
   Integer,
   Float,
   Map,
-  List,
-  Composite)
+  List)
 
-# type adjectives
-from types import (
+from composite import (
+  Composite,
   Required,
   Default)
