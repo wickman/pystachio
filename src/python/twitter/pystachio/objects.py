@@ -2,6 +2,14 @@ import copy
 import re
 
 class ObjectId(object):
+  """
+    A reference to a hierarchically named object.
+
+    E.g. "foo" references the name foo.  The reference "foo.bar" references
+    the name "bar" in foo's scope.  If foo is not a dictionary, this will
+    result in an interpolation/binding error.
+  """
+
   _COMPONENT_RE = re.compile(r'^\w+$')
   _COMPONENT_SEPARATOR = '.'
 
@@ -41,6 +49,15 @@ class ObjectId(object):
     return oenv
 
 class ObjectMustacheParser(object):
+  """
+    Split strings on Mustache-style templates:
+      a {{foo}} bar {{baz}} b => ['a ', ObjectId('foo'), ' bar ', ObjectId('baz'), ' b']
+
+    To suppress parsing of individual tags, you can use {{&foo}} which emits '{{foo}}'
+    instead of ObjectId('foo') or ObjectId('&foo').  As such, template variables cannot
+    begin with '&'.
+  """
+
   _ADDRESS_DELIMITER = '&'
   _MUSTACHE_RE = re.compile(r"{{(%c)?([^{}]+?)\1?}}" % _ADDRESS_DELIMITER)
 
@@ -64,28 +81,8 @@ class ObjectMustacheParser(object):
 
 class ObjectEnvironment(dict):
   """
-    Need an attribute bundle that works something like this:
-
-      Stores {
-        'daemon': {
-          'id': 1234,
-          'name': 'oh baby'
-        },
-        'mesos': {
-          'datacenter': 'smf1-prod',
-          'cluster': {
-            'slaves': 1235,
-            'executors': 1358,
-            ...
-          }
-        }
-      }
-
-      Then attributes.update(mesos = { 'cluster': { 'nodes': 1325 } })
-        => recursively dives down and replaces only leaves.
-
-      Furthermore, needs to be able to
-      scope1.merge(scope2).merge(scope3).evaluate(mustache expression)
+    An attribute bundle that stores a dictionary of environment variables,
+    supporting selective recursive merging.
   """
 
   def __init__(self, *dictionaries, **names):
@@ -105,4 +102,3 @@ class ObjectEnvironment(dict):
           ObjectEnvironment.merge(env1[key], env2[key])
         else:
           env1[key] = env2[key]
-
