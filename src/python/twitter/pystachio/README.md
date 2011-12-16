@@ -1,5 +1,14 @@
+# Pystachio #
+
 Pystachio is a library for generating structured-type overlays onto ordinary
 Python objects.  Its intended use is for the construction of miniature DSLs.
+
+The 'stache' part of Pystachio refers to the lazy referencing feature of the
+generated objects, which is done exclusively with Mustache templates.  As
+such, Mustache templates are first class citizens in Pystachio.
+
+
+## Overview ##
 
 You can define a structured type through the 'Composite' type:
 
@@ -57,3 +66,34 @@ they are composable like functors:
     >>> brian.check()
     TypeCheck(OK)
 
+
+Object fields may also acquire defaults:
+
+    class Employee(Composite):
+      first    = Required(String)
+      last     = Required(String)
+      age      = Integer
+      location = Default(String, "San Francisco")
+
+    >>> Employee()
+    Employee(location=String(San Francisco))
+
+
+Schemas wouldn't be terribly useful without the ability to be hierarchical:
+
+    class Location(Composite):
+      city = String
+      state = String
+      country = String
+
+    class Employee(Composite):
+      first    = Required(String)
+      last     = Required(String)
+      age      = Integer
+      location = Default(Location, Location(city = "San Francisco"))
+
+    >>> Employee(first="brian", last="wickman")
+    Employee(last=String(wickman), location=Location(city=String(San Francisco)), first=String(brian))
+
+    >>> Employee(first="brian", last="wickman").check()
+    TypeCheck(OK)
