@@ -83,11 +83,16 @@ class String(Object):
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not a string" % repr(obj._value))
+  
+  def __init__(self, value):
+    Object.__init__(self, value)
 
 
 class Integer(Object):
   @classmethod
   def checker(cls, obj):
+    if not isinstance(obj, Integer):
+      return TypeCheck.failure("%s is not a subclass of Integer" % obj)
     if isinstance(obj._value, int):
       return TypeCheck.success()
     else:
@@ -97,6 +102,8 @@ class Integer(Object):
 class Float(Object):
   @classmethod
   def checker(cls, obj):
+    if not isinstance(obj, Float):
+      return TypeCheck.failure("%s is not a subclass of Float" % obj)
     if isinstance(obj._value, float):
       return TypeCheck.success()
     else:
@@ -106,6 +113,8 @@ class Float(Object):
 class List(Object):
   @classmethod
   def checker(cls, obj):
+    if not isinstance(obj, List):
+      return TypeCheck.failure("%s is not a subclass of List" % obj)
     if isinstance(obj._value, Iterable):
       return TypeCheck.success()
     else:
@@ -115,6 +124,8 @@ class List(Object):
 class Map(Object):
   @classmethod
   def checker(cls, obj):
+    if not isinstance(obj, Map):
+      return TypeCheck.failure("%s is not a subclass of Map" % obj)
     if isinstance(obj._value, Mapping):
       return TypeCheck.success()
     else:
@@ -193,7 +204,9 @@ class CompositeObject(ObjectBase):
       if attr not in self.SCHEMA:
         raise AttributeError('Unknown schema attribute %s' % attr)
       schema_type = self.SCHEMA[attr]
-      if isinstance(kw[attr], schema_type.klazz()):
+      if kw[attr] is Empty:
+        self._schema_data[attr] = Empty
+      elif isinstance(kw[attr], schema_type.klazz()):
         self._schema_data[attr] = kw[attr]
       else:
         self._schema_data[attr] = schema_type.klazz()(kw[attr])
