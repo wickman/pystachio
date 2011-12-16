@@ -118,7 +118,13 @@ class Object(ObjectBase):
     return new_object
 
   def __eq__(self, other):
-    return self.__class__ == other.__class__ and self._value == other._value
+    if self.__class__ != other.__class__: return False
+    si = self.interpolate()
+    oi = other.interpolate()
+    return si[0]._value == oi[0]._value
+
+  def __ne__(self, other):
+    return not (self == other)
 
   def __repr__(self):
     return '%s(%s)' % (self.__class__.__name__, self._value)

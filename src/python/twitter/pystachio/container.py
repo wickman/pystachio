@@ -22,6 +22,16 @@ class ListContainer(ObjectBase):
   def __repr__(self):
     return '%s(%s)' % (self.__class__.__name__, ', '.join(map(str, self._values)))
 
+  def __eq__(self, other):
+    if not isinstance(other, ListContainer): return False
+    if self.TYPE != other.TYPE: return False
+    si = self.interpolate()
+    oi = other.interpolate()
+    return si[0]._values == oi[0]._values
+
+  def __ne__(self, other):
+    return not (self == other)
+
   @staticmethod
   def isiterable(values):
     return isinstance(values, Iterable) and not isinstance(values, basestring)
@@ -56,7 +66,7 @@ class ListContainer(ObjectBase):
       einterp, eunbound = element.in_scope(self.environment()).interpolate()
       interpolated.append(einterp)
       unbound.update(eunbound)
-    return interpolated, list(unbound)
+    return self.__class__(interpolated), list(unbound)
 
 
 def List(object_type):
@@ -106,6 +116,18 @@ class MapContainer(ObjectBase):
         return TypeCheck.failure("%s[%s] value %s failed check: %s" % (self.__class__.__name__,
           key, value, value.check().message()))
     return TypeCheck.success()
+
+  def interpolate(self):
+    unbound = set()
+    interpolated = {}
+    for key, value in self._map.items():
+      kinterp, kunbound = key.in_scope(self.environment()).interpolate()
+      vinterp, vunbound = value.in_scope(self.environment()).interpolate()
+      unbound.update(kunbound)
+      unbound.update(vunbound)
+      interpolated[kinterp] = vinterp
+    return self.__class__(interpolated), list(unbound)
+
 
 
 def Map(key_type, value_type):
