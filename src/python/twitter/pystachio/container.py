@@ -90,6 +90,17 @@ class MapContainer(ObjectBase):
     return '%s(%s)' % (self.__class__.__name__,
       ', '.join('%s => %s' % (key, val) for key, val in self._map.items()))
 
+  def __eq__(self, other):
+    if not isinstance(other, MapContainer): return False
+    if self.KEYTYPE != other.KEYTYPE: return False
+    if self.VALUETYPE != other.VALUETYPE: return False
+    si = self.interpolate()
+    oi = other.interpolate()
+    return si[0]._map == oi[0]._map
+
+  def __ne__(self, other):
+    return not (self == other)
+
   def _coerce_map(self, input_map):
     if not isinstance(input_map, Mapping):
       raise ValueError("MapContainer expects a Mapping, got %s" % repr(input_map))

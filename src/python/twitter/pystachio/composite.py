@@ -124,6 +124,16 @@ class Composite(ObjectBase):
     new_self._update_schema_data(**copy.deepcopy(kw))
     return new_self
 
+  def __eq__(self, other):
+    if not isinstance(other, Composite): return False
+    if self.SCHEMA != other.SCHEMA: return False
+    si = self.interpolate()
+    oi = other.interpolate()
+    return si[0]._schema_data == oi[0]._schema_data
+
+  def __ne__(self, other):
+    return not (self == other)
+
   def __repr__(self):
     return '%s(%s)' % (
       self.__class__.__name__,
@@ -142,3 +152,15 @@ class Composite(ObjectBase):
           return TypeCheck.failure('%s[%s] failed: %s' % (self.__class__.__name__, name,
             type_check.message()))
     return TypeCheck.success()
+
+  def interpolate(self):
+    unbound = set()
+    interpolated_schema_data = {}
+    for key, value in self._schema_data.items():
+      if value is Empty:
+        interpolated_schema_data[key] = Empty
+      else:
+        vinterp, vunbound = value.in_scope(self.environment()).interpolate()
+        unbound.update(vunbound)
+        interpolated_schema_data[key] = vinterp
+    return self.__class__(**interpolated_schema_data), list(unbound)

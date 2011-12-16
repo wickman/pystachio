@@ -123,6 +123,10 @@ class Object(ObjectBase):
     oi = other.interpolate()
     return si[0]._value == oi[0]._value
 
+  def __hash__(self):
+    si = self.interpolate()
+    return hash(si[0]._value)
+
   def __ne__(self, other):
     return not (self == other)
 
