@@ -34,17 +34,18 @@ def test_nested_composites():
   assert not Process(resources = Resources(cpu = 1)).check().ok()
   assert not Process(name = 15)(resources = Resources(cpu = 1.0)).check().ok()
 
-
 def test_defaults():
   class Resources(Composite):
     cpu = Default(Float, 1.0)
     ram = Integer
-  assert Resources()._schema_data['cpu'] == Float(1.0)
+  assert Resources() == Resources(cpu = 1.0)
   assert Resources(cpu = 2.0)._schema_data['cpu'] == Float(2.0)
 
   class Process(Composite):
     name = String
-    resources = Default(Resources, Resources(cpu = 1.0))
+    resources = Default(Resources, Resources(ram = 10))
 
   assert Process().check().ok()
+  assert Process() == Process(resources = Resources(cpu = 1.0, ram = 10))
+  assert Process() != Process(resources = Resources())
   assert Process()(resources = Empty).check().ok()

@@ -25,4 +25,3 @@ def test_list_scoping():
 
 def test_equals():
   assert List(Integer)([1, "{{wut}}"]).bind(wut=23) == List(Integer)([1, 23])
-
