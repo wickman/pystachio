@@ -1,7 +1,6 @@
 import copy
 import re
 
-
 class ObjectId(object):
   _COMPONENT_RE = re.compile(r'^\w+$')
   _COMPONENT_SEPARATOR = '.'

@@ -7,10 +7,14 @@ from .objects import ObjectEnvironment
 
 
 class Empty(object):
+  """The Empty sentinel representing an unspecified field."""
   pass
 
 
 class TypeCheck(object):
+  """
+    Encapsulate the results of a type check pass.
+  """
   class Error(Exception):
     pass
 
@@ -40,6 +44,10 @@ class TypeCheck(object):
 
 
 class ObjectBase(object):
+  """
+    ObjectBase base class, encapsulating a set of variable bindings scoped to this object.
+  """
+
   @classmethod
   def checker(cls, obj):
     raise NotImplementedError
@@ -48,19 +56,32 @@ class ObjectBase(object):
     self._environment = ObjectEnvironment()
 
   def copy(self):
+    """
+      Return a copy of this object.
+    """
     raise NotImplementedError
 
   def bind(self, *args, **kw):
+    """
+      Bind environment variables into this object's scope.
+    """
     new_self = self.copy()
     binding_environment = ObjectEnvironment(*args, **kw)
     ObjectEnvironment.merge(new_self._environment, binding_environment)
     return new_self
 
   def check(self):
+    """
+      Perform post-bind type checking.
+    """
     return self.checker(self)
 
 
 class Object(ObjectBase):
+  """
+    A simply-valued object.
+  """
+
   def __init__(self, value):
     self._value = copy.deepcopy(value)
     ObjectBase.__init__(self)
@@ -137,6 +158,10 @@ class Map(Object):
 
 
 class TypeSignature(object):
+  """
+    Type metadata for composite type schemas.
+  """
+
   def __init__(self, cls, required=False, default=Empty):
     assert isclass(cls)
     assert issubclass(cls, ObjectBase)
@@ -171,6 +196,10 @@ def Default(cls, default):
 
 
 class CompositeMetaclass(type):
+  """
+    Schema-extracting metaclass for Composite objects.
+  """
+
   @staticmethod
   def extract_schema(attributes):
     schema = {}
@@ -188,6 +217,26 @@ class CompositeMetaclass(type):
 
 
 class Composite(ObjectBase):
+  """
+    Schema-based composite objects, e.g.
+
+      class Employee(Composite):
+        first = Required(String)
+        last  = Required(String)
+        email = Required(String)
+        phone = String
+
+      Employee(first = "brian", last = "wickman", email = "wickman@twitter.com").check()
+
+    They're purely functional data structures and behave more like functors.
+    In other words they're immutable:
+
+      >>> brian = Employee(first = "brian")
+      >>> brian(last = "wickman")
+      Employee(last=String(wickman), first=String(brian))
+      >>> brian
+      Employee(first=String(brian))
+  """
   __metaclass__ = CompositeMetaclass
 
   def __init__(self, **kw):
