@@ -1,45 +1,50 @@
 import pytest
 import unittest
 from twitter.pystachio import (
+  Empty,
   String,
   Integer,
   Float,
   Map,
   List,
-  Composite)
+  Composite,
+  Default,
+  Required)
 
 def test_basic_types():
   class Resources(Composite):
-    cpu = Float(required=True)
-    ram = Integer(required=True)
-    disk = Integer
+    cpu = Float
+    ram = Integer
+  assert Resources().check().ok()
+  assert Resources(cpu = 1.0).check().ok()
+  assert Resources(cpu = 1.0, ram = 100).check().ok()
+  assert not Resources(cpu = 1, ram = 100).check().ok()
+
+def test_nested_composites():
+  class Resources(Composite):
+    cpu = Float
+    ram = Integer
+  class Process(Composite):
+    name = String
+    resources = Resources
+  assert Process().check().ok()
+  assert Process(name = "hello_world").check().ok()
+  assert Process(resources = Resources()).check().ok()
+  assert Process(resources = Resources(cpu = 1.0)).check().ok()
+  assert not Process(resources = Resources(cpu = 1)).check().ok()
+  assert not Process(name = 15)(resources = Resources(cpu = 1.0)).check().ok()
+
+
+def test_defaults():
+  class Resources(Composite):
+    cpu = Default(Float, 1.0)
+    ram = Integer
+  assert Resources()._schema_data['cpu'] == Float(1.0)
+  assert Resources(cpu = 2.0)._schema_data['cpu'] == Float(2.0)
 
   class Process(Composite):
-    name = String(required=True)
-    min_resources = Resources
-    max_resources = Resources(required=True)
+    name = String
+    resources = Default(Resources, Resources(cpu = 1.0))
 
-  # conflation of instance and type .. need a metaclass to build a concrete type annotated
-  # with the attributes.  basically Int(required=True,default=23) is RequiredIntDefault23 type
-  # that .checks(), .coerce() etc differently.
-  #
-  # the challenge syntactically is to get Int.check(...) to behave as if required=False,default=Empty
-  # 
-  # it's like a metaclass that behaves in the fashion of the _objects_ that we're constructing!
-  # neat.  so like p(name = "hello").name() => "hello" but p().name() => the default
-  #
-  # similarly, Int is a type, but we want Int(required=False) to also be a type.
-  # can we override a __call__ method in a metaclass?  whoa.
-  r = Resources()
-
-  assert r.check(
-    Resources(cpu = 1.0, disk = 1000)) is False, "Missing ram which is required"
-  assert r.check(Resources(cpu = 1.0, ram = 1000))
-
-  r = Resources(cpu = 1.0, disk = 1000)
-  p = Process()  
-  assert p.check(Process(name = "hello_world", min_resources = r)) is False, (
-    "min_resources is missing ram and should not type check.")
-  assert p.check(Process(name = "hello_world", max_resources = r)) is False
-  assert p.check(Process(name = "hello_world", max_resources = r(ram=10)))
-  
+  assert Process().check().ok()
+  assert Process()(resources = Empty).check().ok()

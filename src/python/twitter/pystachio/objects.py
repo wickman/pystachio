@@ -8,30 +8,30 @@ class ObjectId(object):
 
   class InvalidObjectIdError(Exception): pass
   class UnboundObjectId(Exception): pass
-    
+
   def __init__(self, address):
     self._address = address
     ObjectId.raise_if_invalid(self)
-  
+
   def address(self):
     return self._address
-  
+
   def components(self):
     return self._address.split(self._COMPONENT_SEPARATOR)
-  
+
   @staticmethod
   def raise_if_invalid(oid):
     for component in oid.components():
       if not ObjectId._COMPONENT_RE.match(component):
         raise ObjectId.InvalidObjectIdError("Invalid address: %s at %s" % (
           oid.address(), component))
-  
+
   def __repr__(self):
     return 'ObjectId(%s)' % self._address
-  
+
   def __eq__(self, other):
     return self._address == other._address
-  
+
   @staticmethod
   def interpolate(oid, oenv):
     for component in oid.components():
@@ -66,7 +66,7 @@ class ObjectMustacheParser(object):
 class ObjectEnvironment(dict):
   """
     Need an attribute bundle that works something like this:
-    
+
       Stores {
         'daemon': {
           'id': 1234,
@@ -81,10 +81,10 @@ class ObjectEnvironment(dict):
           }
         }
       }
-      
+
       Then attributes.update(mesos = { 'cluster': { 'nodes': 1325 } })
         => recursively dives down and replaces only leaves.
-      
+
       Furthermore, needs to be able to
       scope1.merge(scope2).merge(scope3).evaluate(mustache expression)
   """
@@ -95,7 +95,7 @@ class ObjectEnvironment(dict):
       ObjectEnvironment.merge(env, d)
     ObjectEnvironment.merge(env, names)
     dict.__init__(self, env)
-  
+
   @staticmethod
   def merge(env1, env2):
     for key in env2:

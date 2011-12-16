@@ -17,21 +17,21 @@ class TypeCheck(object):
   @staticmethod
   def success():
     return TypeCheck(True, "")
-  
+
   @staticmethod
   def failure(msg):
     return TypeCheck(False, msg)
-  
+
   def __init__(self, success, message):
     self._success = success
     self._message = message
-  
+
   def message(self):
     return self._message
 
   def ok(self):
     return self._success
-  
+
   def __repr__(self):
     if self.ok():
       return 'TypeCheck(OK)'
@@ -43,10 +43,10 @@ class ObjectBase(object):
   @classmethod
   def checker(cls, obj):
     raise NotImplementedError
-  
+
   def __init__(self):
     self._environment = ObjectEnvironment()
-  
+
   def copy(self):
     raise NotImplementedError
 
@@ -55,7 +55,7 @@ class ObjectBase(object):
     binding_environment = ObjectEnvironment(*args, **kw)
     ObjectEnvironment.merge(new_self._environment, binding_environment)
     return new_self
-  
+
   def check(self):
     return self.checker(self)
 
@@ -64,11 +64,14 @@ class Object(ObjectBase):
   def __init__(self, value):
     self._value = copy.deepcopy(value)
     ObjectBase.__init__(self)
-  
+
   def copy(self):
     new_object = self.__class__(self._value)
     new_object._environment = copy.deepcopy(self._environment)
     return new_object
+
+  def __eq__(self, other):
+    return self.__class__ == other.__class__ and self._value == other._value
 
   def __repr__(self):
     return '%s(%s)' % (self.__class__.__name__, self._value)
@@ -83,7 +86,7 @@ class String(Object):
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not a string" % repr(obj._value))
-  
+
   def __init__(self, value):
     Object.__init__(self, value)
 
@@ -137,9 +140,12 @@ class TypeSignature(object):
   def __init__(self, cls, required=False, default=Empty):
     assert isclass(cls)
     assert issubclass(cls, ObjectBase)
+    if default is not Empty and not isinstance(default, cls):
+      self._default = cls(default)
+    else:
+      self._default = default
     self._cls = cls
     self._required = required
-    self._default = default
 
   def klazz(self):
     return self._cls
@@ -179,11 +185,11 @@ class CompositeMetaclass(type):
   def __new__(mcls, name, parents, attributes):
     augmented_attributes = CompositeMetaclass.extract_schema(attributes)
     return type.__new__(mcls, name, parents, augmented_attributes)
-  
 
-class CompositeObject(ObjectBase):
+
+class Composite(ObjectBase):
   __metaclass__ = CompositeMetaclass
-  
+
   def __init__(self, **kw):
     self._init_schema_data()
     self._update_schema_data(**copy.deepcopy(kw))
@@ -193,12 +199,12 @@ class CompositeObject(ObjectBase):
     for attr in kw:
       if attr not in self.SCHEMA:
         raise AttributeError('Unknown schema attribute %s' % attr)
-  
+
   def _init_schema_data(self):
     self._schema_data = {}
     for attr in self.SCHEMA:
       self._schema_data[attr] = self.SCHEMA[attr].default()
-  
+
   def _update_schema_data(self, **kw):
     for attr in kw:
       if attr not in self.SCHEMA:
