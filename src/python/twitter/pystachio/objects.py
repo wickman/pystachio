@@ -33,6 +33,9 @@ class ObjectId(object):
         raise ObjectId.InvalidObjectIdError("Invalid address: %s at %s" % (
           oid.address(), component))
 
+  def __str__(self):
+    return '{{%s}}' % self._address
+
   def __repr__(self):
     return 'ObjectId(%s)' % self._address
 
@@ -78,6 +81,34 @@ class ObjectMustacheParser(object):
       if splits[k+2]:
         outsplits.append(splits[k+2])
     return outsplits
+
+  @staticmethod
+  def join(splits, environment, strict=True):
+    """
+      Interpolate strings.
+
+      :params splits: Return the output of Parser.split(string)
+      :params environment: The environment in which the interpolation should take place.
+      :params strict (optional): If strict=True, raise an exception on unbounded variables.
+
+      Returns 2-tuple containing:
+        joined string, list of unbound object ids (potentially empty)
+    """
+    isplits = []
+    uninterpolated = []
+    for oid in splits:
+      if isinstance(oid, ObjectId):
+        try:
+          interpolated = ObjectId.interpolate(oid, environment)
+        except ObjectId.UnboundObjectId:
+          interpolated = oid
+          uninterpolated.append(oid)
+          if strict:
+            raise
+        isplits.append(interpolated)
+      else:
+        isplits.append(oid)
+    return (''.join(map(str, isplits)), uninterpolated)
 
 class ObjectEnvironment(dict):
   """
