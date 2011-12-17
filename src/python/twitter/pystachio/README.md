@@ -250,7 +250,7 @@ And in fact, when you bind variables to an object, they are bound as `Environmen
     <class 'twitter.pystachio.parsing.Environment'>
 
 There are two types of object binding: binding directly into the object via
-`bind`, and binding into the object via inherited scope via `in_scope`. 
+`bind`, and binding into the object via inherited scope via `in_scope`.
 Let's take the following example:
 
     >>> env = {'global': 'global variable', 'shared': 'global shared variable'}
@@ -271,7 +271,6 @@ Alternatively we can bind `env` into `obj` as if they were global variables usin
 You can see the local variables take precedence.  The use of scoping will
 become more obvious when scope-inheritance is explained in the context of
 `Composite` types.
-    
 
 ## Templating ##
 
