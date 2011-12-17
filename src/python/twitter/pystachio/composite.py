@@ -131,9 +131,6 @@ class Composite(ObjectBase):
     oi = other.interpolate()
     return si[0]._schema_data == oi[0]._schema_data
 
-  def __ne__(self, other):
-    return not (self == other)
-
   def __repr__(self):
     return '%s(%s)' % (
       self.__class__.__name__,

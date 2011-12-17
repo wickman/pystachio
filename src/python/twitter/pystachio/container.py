@@ -29,9 +29,6 @@ class ListContainer(ObjectBase):
     oi = other.interpolate()
     return si[0]._values == oi[0]._values
 
-  def __ne__(self, other):
-    return not (self == other)
-
   @staticmethod
   def isiterable(values):
     return isinstance(values, Iterable) and not isinstance(values, basestring)
@@ -97,9 +94,6 @@ class MapContainer(ObjectBase):
     si = self.interpolate()
     oi = other.interpolate()
     return si[0]._map == oi[0]._map
-
-  def __ne__(self, other):
-    return not (self == other)
 
   def _coerce_map(self, input_map):
     if not isinstance(input_map, Mapping):

@@ -1,8 +1,8 @@
 # environment/stache binding
 from parsing import (
-  ObjectId,
-  ObjectMustacheParser,
-  ObjectEnvironment)
+  Ref,
+  MustacheParser,
+  Environment)
 
 # basic + composite types
 from objects import (

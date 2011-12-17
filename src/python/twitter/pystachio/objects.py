@@ -4,9 +4,8 @@ import types
 from collections import Iterable, Mapping
 from inspect import isclass
 from parsing import (
-  ObjectId,
-  ObjectEnvironment,
-  ObjectMustacheParser)
+  Environment,
+  MustacheParser)
 
 
 class Empty(object):
@@ -58,7 +57,7 @@ class ObjectBase(object):
     raise NotImplementedError
 
   def __init__(self):
-    self._environment = ObjectEnvironment()
+    self._environment = Environment()
 
   def copy(self):
     """
@@ -71,7 +70,7 @@ class ObjectBase(object):
       Bind environment variables into this object's scope.
     """
     new_self = self.copy()
-    ObjectEnvironment.merge(new_self._environment, ObjectEnvironment(*args, **kw))
+    Environment.merge(new_self._environment, Environment(*args, **kw))
     return new_self
 
   def in_scope(self, *args, **kw):
@@ -79,8 +78,8 @@ class ObjectBase(object):
       Scope this object to a parent environment (like bind but reversed.)
     """
     new_self = self.copy()
-    parent_environment = ObjectEnvironment(*args, **kw)
-    ObjectEnvironment.merge(parent_environment, new_self._environment)
+    parent_environment = Environment(*args, **kw)
+    Environment.merge(parent_environment, new_self._environment)
     new_self._environment = parent_environment
     return new_self
 
@@ -89,9 +88,12 @@ class ObjectBase(object):
 
   def check(self):
     """
-      Perform post-bind type checking.
+      Type check this object.
     """
     return self.checker(self)
+
+  def __ne__(self, other):
+    return not (self == other)
 
   def __mod__(self, environment):
     def extract_environment(env):
@@ -101,13 +103,19 @@ class ObjectBase(object):
         return env.environment()
       else:
         raise ValueError("Must interpolate within the context of a mapping or other Object.")
-    interp, unbound = self.in_scope(extract_environment(environment)).interpolate()
-    # ignore unbound in the case of '%' interpolation
+    interp, _ = self.in_scope(extract_environment(environment)).interpolate()
     return interp
 
   def interpolate(self):
     """
-      Return a copy of this object interpolated in the context of self._environment.
+      Interpolate this object in the context of the Object's environment.
+
+      Should return a 2-tuple:
+        The object with as much interpolated as possible.
+        The remaining unbound Refs necessary to fully interpolate the object.
+
+      If the object is fully interpolated, it should be typechecked prior to
+      return.
     """
     raise NotImplementedError
 
@@ -125,32 +133,33 @@ class Object(ObjectBase):
     ObjectBase.__init__(self)
 
   def copy(self):
-    new_object = self.__class__(self._value)
-    new_object._environment = copy.deepcopy(self._environment)
-    return new_object
+    new_self = self.__class__(self._value)
+    new_self._environment = copy.deepcopy(self.environment())
+    return new_self
 
   def __eq__(self, other):
-    if self.__class__ != other.__class__: return False
-    si = self.interpolate()
-    oi = other.interpolate()
-    return si[0]._value == oi[0]._value
+    if self.__class__ != other.__class__:
+      return False
+    si, _ = self.interpolate()
+    oi, _ = other.interpolate()
+    return si._value == oi._value
 
   def __hash__(self):
-    si = self.interpolate()
-    return hash(si[0]._value)
-
-  def __ne__(self, other):
-    return not (self == other)
+    si, _ = self.interpolate()
+    return hash(si._value)
 
   def __repr__(self):
-    return '%s(%s)' % (self.__class__.__name__, self._value)
+    si, _ = self.interpolate()
+    return '%s(%s)' % (self.__class__.__name__, si._value)
 
   def interpolate(self):
-    if isinstance(self._value, basestring):
-      splits = ObjectMustacheParser.split(self._value)
-      joins, unbound = ObjectMustacheParser.join(splits, self._environment, strict=False)
+    if not isinstance(self._value, basestring):
+      return self, []
+    else:
+      splits = MustacheParser.split(self._value)
+      joins, unbound = MustacheParser.join(splits, self._environment, strict=False)
       if unbound:
-        return self, unbound
+        return self.__class__(joins), unbound
       else:
         self_copy = self.copy()
         if hasattr(self_copy, 'coerce') and callable(self_copy.coerce):
@@ -161,8 +170,6 @@ class Object(ObjectBase):
           raise ObjectBase.InterpolationError(self_copy.check().message())
         else:
           return self_copy, unbound
-    else:
-      return self, []
 
 
 class String(Object):
