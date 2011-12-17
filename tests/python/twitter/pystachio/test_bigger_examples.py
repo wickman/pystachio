@@ -1,0 +1,47 @@
+import pytest
+import unittest
+
+from twitter.pystachio import *
+
+class CommandLine(Composite):
+  binary = Required(String)
+  args   = List(String)
+  params = Map(String, String)
+
+class Resources(Composite):
+  cpu  = Required(Float)
+  ram  = Required(Integer)
+  disk = Default(Integer, 2 * 2**30)
+
+class Process(Composite):
+  name         = Required(String)
+  resources    = Required(Resources)
+  cmdline      = String
+  command      = CommandLine
+  max_failures = Default(Integer, 1)
+
+class Task(Composite):
+  name         = Required(String)
+  processes    = Required(List(Process))
+  max_failures = Default(Integer, 1)
+
+def test_simple_task():
+  command = "echo I am {{process.name}} in {{mesos.datacenter}}."
+  process_template = Process(
+    name = '{{process.name}}',
+    resources = Resources(cpu = 1.0, ram = 2**24),
+    cmdline = command)
+  basic = Task(name = "basic")(
+    processes = [
+      process_template.bind(process = {'name': 'process_1'}),
+      process_template.bind(process = {'name': 'process_2'}),
+      process_template.bind(process = {'name': 'process_3'}),
+    ])
+
+  bi, unbound = basic.interpolate()
+  assert unbound == [Ref('mesos.datacenter')]
+
+  bi, unbound = (basic % {'mesos': {'datacenter': 'california'}}).interpolate()
+  assert unbound == []
+  assert bi.check().ok()
+

@@ -13,11 +13,12 @@ def test_basic_lists():
   assert List(Integer)([1]).check().ok()
   assert List(Integer)((1,)).check().ok()
   assert List(Integer)(["1",]).check().ok()
-  assert List(Integer)(["1",1]).check().ok()
+  assert not List(Integer)([1, "{{two}}"]).check().ok()
+  assert (List(Integer)([1, "{{two}}"]) % {'two': 2}).check().ok()
 
 def test_list_scoping():
-  assert List(Integer)([1, "{{wut}}"]).interpolate() == (List(Integer)([Integer(1), Integer('{{wut}}')]),
-    [Ref('wut')])
+  assert List(Integer)([1, "{{wut}}"]).interpolate() == (
+    List(Integer)([Integer(1), Integer('{{wut}}')]), [Ref('wut')])
   assert List(Integer)([1, "{{wut}}"]).bind(wut = 23).interpolate() == (
     List(Integer)([Integer(1), Integer(23)]), [])
   assert List(Integer)([1, Integer("{{wut}}").bind(wut = 24)]).bind(wut = 23).interpolate() == (
