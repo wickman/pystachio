@@ -93,6 +93,18 @@ class ObjectBase(object):
     """
     return self.checker(self)
 
+  def __mod__(self, environment):
+    def extract_environment(env):
+      if isinstance(env, Mapping):
+        return env
+      elif isinstance(env, ObjectBase):
+        return env.environment()
+      else:
+        raise ValueError("Must interpolate within the context of a mapping or other Object.")
+    interp, unbound = self.in_scope(extract_environment(environment)).interpolate()
+    # ignore unbound in the case of '%' interpolation
+    return interp
+
   def interpolate(self):
     """
       Return a copy of this object interpolated in the context of self._environment.
@@ -211,4 +223,3 @@ class Float(Object):
       return float(value)
     except ValueError:
       raise Object.CoercionError(value, cls)
-
