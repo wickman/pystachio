@@ -1,11 +1,12 @@
 import pytest
 import unittest
-from twitter.pystachio import (
+
+from twitter.pystachio.parsing import (
   Environment,
   MustacheParser,
   Ref)
 
-def test_basic_constructors():
+def test_environment_constructors():
   oe = Environment(a = 1, b = 2)
   assert oe == {'a': 1, 'b': 2}
 
@@ -25,7 +26,7 @@ def test_basic_constructors():
   assert oe2 == {'a': 2, 'b': 2}
 
 
-def test_selective_merge():
+def test_environment_merge():
   oe1 = Environment(a = 1, b = 2)
   oe2 = Environment(a = 1, b = {'c': 2})
   Environment.merge(oe1, oe2)
@@ -41,18 +42,61 @@ def test_selective_merge():
   Environment.merge(oe1, oe2)
   assert oe1 == { 'a': {'b': 1, 'c': 2 } }
 
+  oe1 = Environment(a = { 'b': 1 })
+  oe2 = Environment(a = { 'c': 2 })
+  Environment.merge(oe1, oe2)
+  assert oe1 == { 'a': {'b': 1, 'c': 2 } }
 
-def test_basic_mustache_splitting():
+  oe1 = Environment(a = { 'b': 1 })
+  oe2 = Environment(a = None)
+  Environment.merge(oe1, oe2)
+  assert oe1 == { 'a': None }
+
+  oe2 = Environment({ 'b': type })
+  Environment.merge(oe1, oe2)
+  assert oe1 == { 'a': None, 'b': type }
+
+  oe2 = Environment()
+  Environment.merge(oe1, oe2)
+  assert oe1 == { 'a': None, 'b': type }
+
+  Environment.merge(oe2, oe1)
+  assert oe1 == oe2
+
+
+def test_mustache_re():
+  # valid ref names
+  assert MustacheParser.split("{{foo}}") == [Ref("foo")]
+  assert MustacheParser.split("{{_}}") == [Ref("_")]
+  assert MustacheParser.split("{{4}}") == [Ref("4")]
+  def chrange(a,b):
+    return ''.join(map(lambda ch: str(chr(ch)), range(ord(a), ord(b)+1)))
+  slash_w = chrange('a','z') + chrange('A','Z') + chrange('0','9') + '_'
+  assert MustacheParser.split("{{%s}}" % slash_w) == [Ref(slash_w)]
+
+  # bracketing
+  assert MustacheParser.split("{{{foo}}") == ['{', Ref('foo')]
+  assert MustacheParser.split("{{foo}}}") == [Ref('foo'), '}']
+  assert MustacheParser.split("{{{foo}}}") == ['{', Ref('foo'), '}']
+  assert MustacheParser.split("{{}}") == ['{{}}']
+  assert MustacheParser.split("{{{}}}") == ['{{{}}}']
+  assert MustacheParser.split("{{{{foo}}}}") == ['{{', Ref("foo"), '}}']
+
+  invalid_refs = ['!@', '-', '$', ':']
+  for ref in invalid_refs:
+    with pytest.raises(Ref.InvalidRefError):
+      MustacheParser.split("{{%s}}" % ref)
+
+def test_mustache_splitting():
   assert MustacheParser.split("{{foo}}") == [Ref("foo")]
   assert MustacheParser.split("{{&foo}}") == ["{{foo}}"]
   splits = MustacheParser.split('blech {{foo}} {{bar}} bonk {{&baz}} bling')
   assert splits == ['blech ', Ref("foo"), ' ', Ref('bar'), ' bonk ', '{{baz}}', ' bling']
 
-
-def test_basic_mustache_joining():
+def test_mustache_joining():
   oe = Environment(foo = "foo herp",
-                         bar = "bar derp",
-                         baz = "baz blerp")
+                   bar = "bar derp",
+                   baz = "baz blerp")
 
   joined, unbound = MustacheParser.join(MustacheParser.split("{{foo}}"), oe)
   assert joined == "foo herp"
@@ -71,7 +115,7 @@ def test_basic_mustache_joining():
   assert unbound == [Ref('unbound')]
 
 
-def test_basic_interpolation():
+def test_ref_lookup():
   oe = Environment(a = 1)
   assert Ref.lookup(Ref("a"), oe) == 1
 

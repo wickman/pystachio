@@ -112,7 +112,7 @@ class MustacheParser(object):
         isplits.append(value)
       else:
         isplits.append(oid)
-    return (''.join(map(str, isplits)), unbound)
+    return (''.join(map(unicode, isplits)), unbound)
 
 
 class Environment(dict):

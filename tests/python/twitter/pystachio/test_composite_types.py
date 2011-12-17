@@ -49,3 +49,19 @@ def test_defaults():
   assert Process() == Process(resources = Resources(cpu = 1.0, ram = 10))
   assert Process() != Process(resources = Resources())
   assert Process()(resources = Empty).check().ok()
+
+def test_composite_interpolation():
+  class Resources(Composite):
+    cpu = Required(Float)
+    ram = Integer
+    disk = Integer
+
+  class Process(Composite):
+    name = Required(String)
+    resources = Map(String, Resources)
+
+  p = Process(name = "hello")
+  assert p(resources = {'foo': Resources()}) == \
+         p(resources = {'{{whee}}': Resources()}).bind(whee='foo')
+  assert p(resources = {'{{whee}}': Resources(cpu='{{whee}}')}).bind(whee=1.0) == \
+         p(resources = {'1.0': Resources(cpu=1.0)})

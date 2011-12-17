@@ -29,7 +29,7 @@ class ListContainer(ObjectBase):
 
   def __repr__(self):
     si, _ = self.interpolate()
-    return '%s(%s)' % (self.__class__.__name__, ', '.join(map(str, si._values)))
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(map(unicode, si._values)))
 
   def __eq__(self, other):
     if not isinstance(other, ListContainer): return False

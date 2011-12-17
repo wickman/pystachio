@@ -126,7 +126,7 @@ class Object(ObjectBase):
   """
   class CoercionError(Exception):
     def __init__(self, src, dst):
-      Exception.__init__(self, "Cannot coerce %s to %s" % (src, dst.__name__))
+      Exception.__init__(self, "Cannot coerce '%s' to %s" % (src, dst.__name__))
 
   def __init__(self, value):
     self._value = copy.deepcopy(value)
@@ -154,7 +154,7 @@ class Object(ObjectBase):
 
   def interpolate(self):
     if not isinstance(self._value, basestring):
-      return self, []
+      return self.__class__(self.coerce(self._value)), []
     else:
       splits = MustacheParser.split(self._value)
       joins, unbound = MustacheParser.join(splits, self._environment, strict=False)
@@ -177,7 +177,7 @@ class String(Object):
   def checker(cls, obj):
     if not isinstance(obj, String):
       return TypeCheck.failure("%s is not a subclass of String" % obj)
-    if isinstance(obj._value, str):
+    if isinstance(obj._value, basestring):
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not a string" % repr(obj._value))
@@ -187,7 +187,7 @@ class String(Object):
     ACCEPTED_SOURCE_TYPES = (int, float, basestring)
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise Object.CoercionError(value, cls)
-    return str(value)
+    return unicode(value)
 
 
 class Integer(Object):
