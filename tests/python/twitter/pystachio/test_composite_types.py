@@ -18,7 +18,9 @@ def test_basic_types():
   assert Resources().check().ok()
   assert Resources(cpu = 1.0).check().ok()
   assert Resources(cpu = 1.0, ram = 100).check().ok()
-  assert not Resources(cpu = 1, ram = 100).check().ok()
+  assert Resources(cpu = 1, ram = 100).check().ok()
+  assert Resources(cpu = '1.0', ram = 100).check().ok()
+
 
 def test_nested_composites():
   class Resources(Composite):
@@ -31,8 +33,8 @@ def test_nested_composites():
   assert Process(name = "hello_world").check().ok()
   assert Process(resources = Resources()).check().ok()
   assert Process(resources = Resources(cpu = 1.0)).check().ok()
-  assert not Process(resources = Resources(cpu = 1)).check().ok()
-  assert not Process(name = 15)(resources = Resources(cpu = 1.0)).check().ok()
+  assert Process(resources = Resources(cpu = 1)).check().ok()
+  assert Process(name = 15)(resources = Resources(cpu = 1.0)).check().ok()
 
 def test_defaults():
   class Resources(Composite):

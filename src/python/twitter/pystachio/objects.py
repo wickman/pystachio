@@ -90,7 +90,8 @@ class ObjectBase(object):
     """
       Type check this object.
     """
-    return self.checker(self)
+    si, _ = self.interpolate()
+    return self.checker(si)
 
   def __ne__(self, other):
     return not (self == other)
@@ -166,10 +167,7 @@ class Object(ObjectBase):
           self_copy._value = self_copy.coerce(joins)
         else:
           self_copy._value = joins
-        if not self_copy.check().ok():
-          raise ObjectBase.InterpolationError(self_copy.check().message())
-        else:
-          return self_copy, unbound
+        return self_copy, unbound
 
 
 class String(Object):

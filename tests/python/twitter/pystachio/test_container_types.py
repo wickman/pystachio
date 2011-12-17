@@ -12,8 +12,8 @@ def test_basic_lists():
   assert List(Integer)([]).check().ok()
   assert List(Integer)([1]).check().ok()
   assert List(Integer)((1,)).check().ok()
-  assert not List(Integer)(["1",]).check().ok()
-  assert not List(Integer)(["1",1]).check().ok()
+  assert List(Integer)(["1",]).check().ok()
+  assert List(Integer)(["1",1]).check().ok()
 
 def test_list_scoping():
   assert List(Integer)([1, "{{wut}}"]).interpolate() == (List(Integer)([Integer(1), Integer('{{wut}}')]),
