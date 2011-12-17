@@ -1,19 +1,17 @@
-# environment/stache binding
 from parsing import (
-  Ref,
+  Environment,
   MustacheParser,
-  Environment)
+  Ref)
 
-# basic + composite types
 from objects import (
   Empty,
-  String,
+  Float,
   Integer,
-  Float)
+  String)
 
 from container import (
-  Map,
-  List)
+  List,
+  Map)
 
 from composite import (
   Composite,

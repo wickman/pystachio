@@ -3,6 +3,7 @@ from collections import (
   Mapping)
 import copy
 from inspect import isclass
+
 from objects import (
   Empty,
   ObjectBase,
@@ -10,6 +11,13 @@ from objects import (
   TypeCheck)
 
 class ListContainer(ObjectBase):
+  """
+    The List container type.  This is the base class for all user-generated
+    List types.  It won't function as-is, since it requires cls.TYPE to be
+    set to the contained type.  If you want a concrete List type, see the
+    List() function.
+  """
+
   def __init__(self, vals):
     self._values = self._coerce_values(copy.deepcopy(vals))
     ObjectBase.__init__(self)
@@ -20,14 +28,15 @@ class ListContainer(ObjectBase):
     return new_self
 
   def __repr__(self):
-    return '%s(%s)' % (self.__class__.__name__, ', '.join(map(str, self._values)))
+    si, _ = self.interpolate()
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(map(str, si._values)))
 
   def __eq__(self, other):
     if not isinstance(other, ListContainer): return False
     if self.TYPE != other.TYPE: return False
-    si = self.interpolate()
-    oi = other.interpolate()
-    return si[0]._values == oi[0]._values
+    si, _ = self.interpolate()
+    oi, _ = other.interpolate()
+    return si._values == oi._values
 
   @staticmethod
   def isiterable(values):
@@ -74,6 +83,13 @@ def List(object_type):
 
 
 class MapContainer(ObjectBase):
+  """
+    The Map container type.  This is the base class for all user-generated
+    Map types.  It won't function as-is, since it requires cls.KEYTYPE and
+    cls.VALUETYPE to be set to the appropriate types.  If you want a
+    concrete Map type, see the Map() function.
+  """
+
   def __init__(self, input_map):
     self._map = self._coerce_map(copy.deepcopy(input_map))
     ObjectBase.__init__(self)
@@ -84,16 +100,17 @@ class MapContainer(ObjectBase):
     return new_self
 
   def __repr__(self):
+    si, _ = self.interpolate()
     return '%s(%s)' % (self.__class__.__name__,
-      ', '.join('%s => %s' % (key, val) for key, val in self._map.items()))
+      ', '.join('%s => %s' % (key, val) for key, val in si._map.items()))
 
   def __eq__(self, other):
     if not isinstance(other, MapContainer): return False
     if self.KEYTYPE != other.KEYTYPE: return False
     if self.VALUETYPE != other.VALUETYPE: return False
-    si = self.interpolate()
-    oi = other.interpolate()
-    return si[0]._map == oi[0]._map
+    si, _ = self.interpolate()
+    oi, _ = other.interpolate()
+    return si._map == oi._map
 
   def _coerce_map(self, input_map):
     if not isinstance(input_map, Mapping):
@@ -132,7 +149,6 @@ class MapContainer(ObjectBase):
       unbound.update(vunbound)
       interpolated[kinterp] = vinterp
     return self.__class__(interpolated), list(unbound)
-
 
 
 def Map(key_type, value_type):

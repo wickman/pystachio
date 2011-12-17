@@ -5,6 +5,7 @@ from objects import (
   ObjectBase,
   TypeCheck)
 
+
 class TypeSignature(object):
   """
     Type metadata for composite type schemas.
@@ -36,10 +37,20 @@ class TypeSignature(object):
     elif isinstance(sig, TypeSignature):
       return sig
 
+
 def Required(cls):
+  """
+    Helper to make composite types read succintly.  Wrap a type and make its
+    specification required during type-checking of composite types.
+  """
   return TypeSignature(cls, required=True)
 
+
 def Default(cls, default):
+  """
+    Helper to make composite types read succintly.  Wrap a type and assign it a
+    default if it is unspecified in the construction of the composite type.
+  """
   return TypeSignature(cls, required=False, default=default)
 
 
@@ -132,9 +143,10 @@ class Composite(ObjectBase):
     return si[0]._schema_data == oi[0]._schema_data
 
   def __repr__(self):
+    si, _ = self.interpolate()
     return '%s(%s)' % (
       self.__class__.__name__,
-      ', '.join('%s=%s' % (key, val) for key, val in self._schema_data.items() if val is not Empty)
+      ', '.join('%s=%s' % (key, val) for key, val in si._schema_data.items() if val is not Empty)
     )
 
   def check(self):
