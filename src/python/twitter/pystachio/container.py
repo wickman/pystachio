@@ -19,6 +19,18 @@ class ListContainer(ObjectBase):
   """
   _MEMOIZED_TYPES = {}
 
+  @staticmethod
+  def new(cls):
+    """
+      Construct a List containing type 'cls'.
+    """
+    assert isclass(cls)
+    assert issubclass(cls, ObjectBase)
+    if cls not in ListContainer._MEMOIZED_TYPES:
+      ListContainer._MEMOIZED_TYPES[cls] = type('%sList' % cls.__name__,
+        (ListContainer,), { 'TYPE': cls })
+    return ListContainer._MEMOIZED_TYPES[cls]
+
   def __init__(self, vals):
     self._values = self._coerce_values(copy.deepcopy(vals))
     ObjectBase.__init__(self)
@@ -75,13 +87,7 @@ class ListContainer(ObjectBase):
       unbound.update(eunbound)
     return self.__class__(interpolated), list(unbound)
 
-def List(object_type):
-  assert isclass(object_type)
-  assert issubclass(object_type, ObjectBase)
-  if object_type not in ListContainer._MEMOIZED_TYPES:
-    ListContainer._MEMOIZED_TYPES[object_type] = type.__new__(
-      type, '%sList' % object_type.__name__, (ListContainer,), { 'TYPE': object_type })
-  return ListContainer._MEMOIZED_TYPES[object_type]
+List = ListContainer.new
 
 
 class MapContainer(ObjectBase):
@@ -92,6 +98,16 @@ class MapContainer(ObjectBase):
     concrete Map type, see the Map() function.
   """
   _MEMOIZED_TYPES = {}
+
+  @staticmethod
+  def new(key_cls, value_cls):
+    assert isclass(key_cls) and isclass(value_cls)
+    assert issubclass(key_cls, ObjectBase) and issubclass(value_cls, ObjectBase)
+    if (key_cls, value_cls) not in MapContainer._MEMOIZED_TYPES:
+      MapContainer._MEMOIZED_TYPES[(key_cls, value_cls)] = type(
+        '%s%sMap' % (key_cls.__name__, value_cls.__name__), (MapContainer,),
+        { 'KEYTYPE': key_cls, 'VALUETYPE': value_cls })
+    return MapContainer._MEMOIZED_TYPES[(key_cls, value_cls)]
 
   def __init__(self, input_map):
     self._map = self._coerce_map(copy.deepcopy(input_map))
@@ -153,12 +169,4 @@ class MapContainer(ObjectBase):
       interpolated[kinterp] = vinterp
     return self.__class__(interpolated), list(unbound)
 
-
-def Map(key_type, value_type):
-  assert isclass(key_type) and isclass(value_type)
-  assert issubclass(key_type, ObjectBase) and issubclass(value_type, ObjectBase)
-  if (key_type, value_type) not in MapContainer._MEMOIZED_TYPES:
-    MapContainer._MEMOIZED_TYPES[(key_type, value_type)] = type.__new__(
-      type, '%s%sMap' % (key_type.__name__, value_type.__name__), (MapContainer,),
-        { 'KEYTYPE': key_type, 'VALUETYPE': value_type })
-  return MapContainer._MEMOIZED_TYPES[(key_type, value_type)]
+Map = MapContainer.new
