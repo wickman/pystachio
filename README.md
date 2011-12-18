@@ -9,6 +9,12 @@ such, Mustache templates are first class citizens in Pystachio.
 
 This project is unrelated to the defunct Javascript Python interpreter.
 
+## Requirements ##
+
+Tested on Python 2.6 - 2.7.  Most likely won't work prior to 2.6.x.
+Definitely won't work on Python 3.2.x because of metaclass issues but those
+are minor.
+
 ## Overview ##
 
 You can define a structured type through the 'Composite' type:
