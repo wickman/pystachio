@@ -74,3 +74,5 @@ def test_recursive_unwrapping():
     ]
   }
   assert Task(**task).check().ok()
+  assert Task(task).check().ok()
+  assert Task(task, **task).check().ok()
