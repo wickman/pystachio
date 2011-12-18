@@ -1,7 +1,7 @@
 import pytest
 import unittest
 
-from twitter.pystachio.parsing import (
+from pystachio.parsing import (
   Environment,
   MustacheParser,
   Ref)

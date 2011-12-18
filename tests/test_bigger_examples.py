@@ -1,7 +1,7 @@
 import pytest
 import unittest
 
-from twitter.pystachio import *
+from pystachio import *
 
 class CommandLine(Composite):
   binary = Required(String)

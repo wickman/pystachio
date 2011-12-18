@@ -1,10 +1,10 @@
 import pytest
 import unittest
-from twitter.pystachio import (
+from pystachio import (
   String,
   Integer,
   Float)
-from twitter.pystachio.objects import Object
+from pystachio.objects import Object
 
 def test_bad_inputs():
   for typ in Float, Integer, String:

@@ -1,6 +1,6 @@
 import pytest
 import unittest
-from twitter.pystachio import (
+from pystachio import (
   Empty,
   String,
   Integer,

@@ -7,6 +7,7 @@ The 'stache' part of Pystachio refers to the lazy referencing feature of the
 generated objects, which is done exclusively with Mustache templates.  As
 such, Mustache templates are first class citizens in Pystachio.
 
+This project is unrelated to the defunct Javascript Python interpreter.
 
 ## Overview ##
 
@@ -463,3 +464,11 @@ dictionary:
 It turns out that we forgot to specify the name of the `Process` in our
 process list, and it was a `Required` field.  If we update the dictionary to
 specify 'name', it will type check successfully.
+
+
+## Author ##
+
+@wickman (Brian Wickman)
+
+Thanks to @marius for some of the original design ideas, @benh, @jsirois,
+@wfarner and others for constructive comments.
