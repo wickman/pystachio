@@ -182,9 +182,28 @@ You construct a `Map` by specifying the source and destination types:
     TypeCheck(OK)
 
 Much like all other types, these types are immutable.  The only way to
-"mutate" would be to create a whole new Map.  Technically speaking you
-should be able to create Maps from `Map` types or `List` types to other
-types, but that is not yet supported.
+"mutate" would be to create a whole new Map.  Technically speaking these
+types are hashable as well, so you can construct stranger composite types
+(added indentation for clarity.)
+
+    >>> fake_ages = Map(String, Integer)({
+    ...   'brian': 28,
+    ...   'ian': 15,
+    ...   'robey': 5000
+    ... })
+    >>> real_ages = Map(String, Integer)({
+    ...   'brian': 30,
+    ...   'ian': 21,
+    ...   'robey': 35
+    ... })
+    >>> believability = Map(Map(String, Integer), Float)({
+    ...   fake_ages: 0.2,
+    ...   real_ages: 0.9
+    ... })
+    >>> believability
+    StringIntegerMapFloatMap(
+      StringIntegerMap(String(brian) => Integer(28), String(ian) => Integer(15), String(robey) => Integer(5000)) => Float(0.2),
+      StringIntegerMap(String(brian) => Integer(30), String(ian) => Integer(21), String(robey) => Integer(35)) => Float(0.9))
 
 
 ## Object scopes ##
