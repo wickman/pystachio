@@ -159,12 +159,32 @@ class Object(ObjectBase):
     new_self._environment = copy.deepcopy(self.environment())
     return new_self
 
-  def __eq__(self, other):
+  def _my_cmp(self, other):
     if self.__class__ != other.__class__:
-      return False
+      return -1
     si, _ = self.interpolate()
     oi, _ = other.interpolate()
-    return si._value == oi._value
+    if si._value < oi._value:
+      return -1
+    elif si._value > oi._value:
+      return 1
+    else:
+      return 0
+
+  def __eq__(self, other):
+    return self._my_cmp(other) == 0
+
+  def __lt__(self, other):
+    return self._my_cmp(other) == -1
+
+  def __gt__(self, other):
+    return self._my_cmp(other) == 1
+
+  def __le__(self, other):
+    return self._my_cmp(other) <= 0
+
+  def __ge__(self, other):
+    return self._my_cmp(other) >= 0
 
   def __hash__(self):
     si, _ = self.interpolate()
