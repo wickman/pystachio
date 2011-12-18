@@ -1,16 +1,31 @@
 import copy
-import types
-
 from collections import Iterable, Mapping
 from inspect import isclass
+
 from parsing import (
   Environment,
   MustacheParser)
+from schema import Schemaless
 
 
 class Empty(object):
   """The Empty sentinel representing an unspecified field."""
   pass
+
+
+class frozendict(dict):
+  """A hashable dictionary."""
+  def __key(self):
+    return tuple((k, self[k]) for k in sorted(self))
+
+  def __hash__(self):
+    return hash(self.__key())
+
+  def __eq__(self, other):
+    return self.__key() == other.__key()
+
+  def __repr__(self):
+    return 'frozendict(%s)' % dict.__repr__(self)
 
 
 class TypeCheck(object):
@@ -58,6 +73,9 @@ class ObjectBase(object):
 
   def __init__(self):
     self._environment = Environment()
+
+  def get(self):
+    raise NotImplementedError
 
   def copy(self):
     """
@@ -133,6 +151,9 @@ class Object(ObjectBase):
     self._value = copy.deepcopy(value)
     ObjectBase.__init__(self)
 
+  def get(self):
+    return self._value
+
   def copy(self):
     new_self = self.__class__(self._value)
     new_self._environment = copy.deepcopy(self.environment())
@@ -170,7 +191,7 @@ class Object(ObjectBase):
         return self_copy, unbound
 
 
-class String(Object):
+class String(Object, Schemaless):
   @classmethod
   def checker(cls, obj):
     if not isinstance(obj, String):
@@ -187,8 +208,12 @@ class String(Object):
       raise Object.CoercionError(value, cls)
     return unicode(value)
 
+  @classmethod
+  def schema_name(cls):
+    return 'String'
 
-class Integer(Object):
+
+class Integer(Object, Schemaless):
   @classmethod
   def checker(cls, obj):
     if not isinstance(obj, Integer):
@@ -208,8 +233,13 @@ class Integer(Object):
     except ValueError:
       raise Object.CoercionError(value, cls)
 
+  @classmethod
+  def schema_name(cls):
+    return 'Integer'
 
-class Float(Object):
+
+
+class Float(Object, Schemaless):
   @classmethod
   def checker(cls, obj):
     if not isinstance(obj, Float):
@@ -228,3 +258,10 @@ class Float(Object):
       return float(value)
     except ValueError:
       raise Object.CoercionError(value, cls)
+
+  @classmethod
+  def schema_name(cls):
+    return 'Float'
+
+for typ in Integer, String, Float:
+  Schemaless.register_schema(typ)

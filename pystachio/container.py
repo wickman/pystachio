@@ -8,9 +8,12 @@ from objects import (
   Empty,
   ObjectBase,
   Object,
-  TypeCheck)
+  TypeCheck,
+  frozendict)
 
-class ListContainer(ObjectBase):
+from schema import Schema
+
+class ListContainer(ObjectBase, Schema):
   """
     The List container type.  This is the base class for all user-generated
     List types.  It won't function as-is, since it requires cls.TYPE to be
@@ -34,6 +37,9 @@ class ListContainer(ObjectBase):
   def __init__(self, vals):
     self._values = self._coerce_values(copy.deepcopy(vals))
     ObjectBase.__init__(self)
+
+  def get(self):
+    return [v.get() for v in self._values]
 
   def copy(self):
     new_self = self.__class__(self._values)
@@ -62,6 +68,7 @@ class ListContainer(ObjectBase):
       if isinstance(value, self.TYPE):
         return value
       else:
+        print 'self.TYPE = %s' % self.TYPE
         return self.TYPE(value)
     return map(coerced, values)
 
@@ -87,10 +94,30 @@ class ListContainer(ObjectBase):
       unbound.update(eunbound)
     return self.__class__(interpolated), list(unbound)
 
+  @classmethod
+  def schema_name(cls):
+    return 'ListContainer'
+
+  @classmethod
+  def serialize_schema(cls):
+    return (cls.schema_name(), {
+      '__name__': cls.__name__,
+      '__containing__': cls.TYPE.serialize_schema()
+    })
+
+  @staticmethod
+  def deserialize_schema(schema):
+    schema_name, schema_parameters = schema
+    contained_type = Schema.deserialize_schema(schema_parameters['__containing__'])
+    real_type = ListContainer.new(contained_type)
+    assert schema_parameters['__name__'] == real_type.__name__
+    return real_type
+
+Schema.register_schema(ListContainer)
 List = ListContainer.new
 
 
-class MapContainer(ObjectBase):
+class MapContainer(ObjectBase, Schema):
   """
     The Map container type.  This is the base class for all user-generated
     Map types.  It won't function as-is, since it requires cls.KEYTYPE and
@@ -112,6 +139,9 @@ class MapContainer(ObjectBase):
   def __init__(self, input_map):
     self._map = self._coerce_map(copy.deepcopy(input_map))
     ObjectBase.__init__(self)
+
+  def get(self):
+    return frozendict((k.get(), v.get()) for (k, v) in self._map.items())
 
   def copy(self):
     new_self = self.__class__(self._map)
@@ -169,4 +199,26 @@ class MapContainer(ObjectBase):
       interpolated[kinterp] = vinterp
     return self.__class__(interpolated), list(unbound)
 
+  @classmethod
+  def schema_name(cls):
+    return 'MapContainer'
+
+  @classmethod
+  def serialize_schema(cls):
+    return (cls.schema_name(), {
+      '__name__': cls.__name__,
+      '__keys__': cls.KEYTYPE.serialize_schema(),
+      '__values__': cls.VALUETYPE.serialize_schema()
+    })
+
+  @staticmethod
+  def deserialize_schema(schema):
+    schema_name, schema_parameters = schema
+    key_type = Schema.deserialize_schema(schema_parameters['__keys__'])
+    value_type = Schema.deserialize_schema(schema_parameters['__values__'])
+    real_type = MapContainer.new(key_type, value_type)
+    assert schema_parameters['__name__'] == real_type.__name__
+    return real_type
+
+Schema.register_schema(MapContainer)
 Map = MapContainer.new

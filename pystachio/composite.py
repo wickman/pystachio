@@ -1,11 +1,13 @@
 from collections import Mapping
 import copy
 from inspect import isclass
+
 from objects import (
   Empty,
   ObjectBase,
-  TypeCheck)
-
+  TypeCheck,
+  frozendict)
+from schema import Schema
 
 class TypeSignature(object):
   """
@@ -22,14 +24,34 @@ class TypeSignature(object):
     self._cls = cls
     self._required = required
 
+  def __eq__(self, other):
+    return (self.klazz == other.klazz and
+            self.required == other.required and
+            self.default == other.default and
+            self.empty == other.empty)
+
+  def __ne__(self, other):
+    return not (self == other)
+
+  def __repr__(self):
+    return 'TypeSignature(%s, required: %s, default: %s, empty: %s)' % (
+      self.klazz.__name__, self.required, self.default, self.empty)
+
+  @property
   def klazz(self):
     return self._cls
 
+  @property
   def required(self):
     return self._required
 
+  @property
   def default(self):
     return self._default
+
+  @property
+  def empty(self):
+    return self._default is Empty
 
   @staticmethod
   def parse(sig):
@@ -61,22 +83,22 @@ class CompositeMetaclass(type):
   """
 
   @staticmethod
-  def extract_schema(attributes):
-    schema = {}
+  def extract_typemap(attributes):
+    typemap = {}
     for attr_name, attr_value in attributes.items():
       sig = TypeSignature.parse(attr_value)
-      if sig: schema[attr_name] = sig
-    for extracted_attribute in schema:
+      if sig: typemap[attr_name] = sig
+    for extracted_attribute in typemap:
       attributes.pop(extracted_attribute)
-    attributes['SCHEMA'] = schema
+    attributes['TYPEMAP'] = typemap
     return attributes
 
   def __new__(mcls, name, parents, attributes):
-    augmented_attributes = CompositeMetaclass.extract_schema(attributes)
+    augmented_attributes = CompositeMetaclass.extract_typemap(attributes)
     return type.__new__(mcls, name, parents, augmented_attributes)
 
 
-class Composite(ObjectBase):
+class Composite(ObjectBase, Schema):
   """
     Schema-based composite objects, e.g.
 
@@ -108,27 +130,30 @@ class Composite(ObjectBase):
     self._update_schema_data(**copy.deepcopy(kw))
     ObjectBase.__init__(self)
 
+  def get(self):
+    return frozendict((k, v.get()) for k, v in self._schema_data.items() if v is not Empty)
+
   def _schema_check(self, kw):
     for attr in kw:
-      if attr not in self.SCHEMA:
+      if attr not in self.TYPEMAP:
         raise AttributeError('Unknown schema attribute %s' % attr)
 
   def _init_schema_data(self):
     self._schema_data = {}
-    for attr in self.SCHEMA:
-      self._schema_data[attr] = self.SCHEMA[attr].default()
+    for attr in self.TYPEMAP:
+      self._schema_data[attr] = self.TYPEMAP[attr].default
 
   def _update_schema_data(self, **kw):
     for attr in kw:
-      if attr not in self.SCHEMA:
+      if attr not in self.TYPEMAP:
         raise AttributeError('Unknown schema attribute %s' % attr)
-      schema_type = self.SCHEMA[attr]
+      schema_type = self.TYPEMAP[attr]
       if kw[attr] is Empty:
         self._schema_data[attr] = Empty
-      elif isinstance(kw[attr], schema_type.klazz()):
+      elif isinstance(kw[attr], schema_type.klazz):
         self._schema_data[attr] = kw[attr]
       else:
-        self._schema_data[attr] = schema_type.klazz()(kw[attr])
+        self._schema_data[attr] = schema_type.klazz(kw[attr])
 
   def copy(self):
     new_object = self.__class__(**self._schema_data)
@@ -142,7 +167,7 @@ class Composite(ObjectBase):
 
   def __eq__(self, other):
     if not isinstance(other, Composite): return False
-    if self.SCHEMA != other.SCHEMA: return False
+    if self.TYPEMAP != other.TYPEMAP: return False
     si = self.interpolate()
     oi = other.interpolate()
     return si[0]._schema_data == oi[0]._schema_data
@@ -155,8 +180,8 @@ class Composite(ObjectBase):
     )
 
   def check(self):
-    for name, signature in self.SCHEMA.items():
-      if self._schema_data[name] is Empty and signature.required():
+    for name, signature in self.TYPEMAP.items():
+      if self._schema_data[name] is Empty and signature.required:
         return TypeCheck.failure('%s[%s] is required.' % (self.__class__.__name__, name))
       elif self._schema_data[name] is not Empty:
         type_check = self._schema_data[name].check()
@@ -178,3 +203,35 @@ class Composite(ObjectBase):
         unbound.update(vunbound)
         interpolated_schema_data[key] = vinterp
     return self.__class__(**interpolated_schema_data), list(unbound)
+
+  @classmethod
+  def schema_name(cls):
+    return 'Composite'
+
+  @classmethod
+  def serialize_schema(cls):
+    schemadict = {
+      '__name__': cls.__name__,
+      '__typemap__': {}
+    }
+    typemap = schemadict['__typemap__']
+    for name, sig in cls.TYPEMAP.items():
+      typemap[name] = (sig.required,
+        sig.default.get() if not sig.empty else {},
+        sig.empty, sig.klazz.serialize_schema())
+    return (cls.schema_name(), schemadict)
+
+  @staticmethod
+  def deserialize_schema(schema):
+    schema_name, schema_parameters = schema
+    typemap = {}
+    for name, sig in schema_parameters['__typemap__'].items():
+      req, default, empty, klazz_schema = sig
+      real_class = Schema.deserialize_schema(klazz_schema)
+      if not empty:
+        typemap[name] = TypeSignature(real_class, default=real_class(default), required=req)
+      else:
+        typemap[name] = TypeSignature(real_class, required=req)
+    return CompositeMetaclass(schema_parameters['__name__'], (Composite,), typemap)
+
+Schema.register_schema(Composite)
