@@ -19,7 +19,7 @@ are minor.
 
 You can define a structured type through the 'Composite' type:
 
-    from twitter.pystachio import (
+    from pystachio import (
       Integer,
       String,
       Composite)
@@ -42,7 +42,7 @@ By default all fields are optional:
 
 But it is possible to make certain fields required:
 
-    from twitter.pystachio import Required
+    from pystachio import Required
 
     class Employee(Composite):
       first = Required(String)
@@ -135,7 +135,7 @@ Though the same gotchas apply as standard coercion in Python:
     >>> int("1.0")
     ValueError: invalid literal for int() with base 10: '1.0'
     >>> Integer("1.0")
-    twitter.pystachio.objects.CoercionError: Cannot coerce '1.0' to Integer
+    pystachio.objects.CoercionError: Cannot coerce '1.0' to Integer
 
 
 ### Container types ###
@@ -150,7 +150,7 @@ You construct a `List` by specifying its type (it actually behaves like a
 metaclass, since it produces a type):
 
     >>> List(String)
-    <class 'twitter.pystachio.container.StringList'>
+    <class 'pystachio.container.StringList'>
     >>> List(String)([])
     StringList()
     >>> List(String)(["a", "b", "c"])
@@ -160,9 +160,9 @@ They compose like expected:
 
     >>> li = List(Integer)
     >>> li
-    <class 'twitter.pystachio.container.IntegerList'>
+    <class 'pystachio.container.IntegerList'>
     >>> List(li)
-    <class 'twitter.pystachio.container.IntegerListList'>
+    <class 'pystachio.container.IntegerListList'>
     >>> List(li)([li([1,"2",3]), li([' 2', '3 ', 4])])
     IntegerListList(IntegerList(Integer(1), Integer(2), Integer(3)),
                     IntegerList(Integer(2), Integer(3), Integer(4)))
@@ -273,7 +273,7 @@ In `Environment` objects, the merges are done recursively:
 And in fact, when you bind variables to an object, they are bound as `Environment` variables:
 
     >>> type(String("hello").bind(foo = "bar").environment())
-    <class 'twitter.pystachio.parsing.Environment'>
+    <class 'pystachio.parsing.Environment'>
 
 There are two types of object binding: binding directly into the object via
 `bind`, and binding into the object via inherited scope via `in_scope`.
