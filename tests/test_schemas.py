@@ -14,7 +14,7 @@ def test_recursive_unwrapping():
     employees = Default(List(Employee), [Employee(name = 'Bob')])
 
   new_employer = Schema.deserialize_schema(Employer.serialize_schema())
-  
+
   # For various reasons, we need to compare the repr(TYPEMAP) instead of the
   # TYPEMAP, mainly because types produced by pystachio are scoped within
   # the pystachio module:
@@ -22,6 +22,6 @@ def test_recursive_unwrapping():
   # Employer.TYPEMAP != new_employer.TYPEMAP b/c
   #   Employer.Employee = <class 'pystachio.composite.Employee'>
   #   new_employer.Employee = <class 'test_schemas.Employee'>
-  
+
   assert repr(Employer.TYPEMAP) == repr(new_employer.TYPEMAP)
   assert Employer.serialize_schema() == new_employer.serialize_schema()
