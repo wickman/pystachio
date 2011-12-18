@@ -1,3 +1,4 @@
+from collections import Mapping
 import copy
 from inspect import isclass
 from objects import (
@@ -98,8 +99,12 @@ class Composite(ObjectBase):
   """
   __metaclass__ = CompositeMetaclass
 
-  def __init__(self, **kw):
+  def __init__(self, *args, **kw):
     self._init_schema_data()
+    for arg in args:
+      if not isinstance(arg, Mapping):
+        raise ValueError('Expected dictionary argument')
+      self._update_schema_data(**arg)
     self._update_schema_data(**copy.deepcopy(kw))
     ObjectBase.__init__(self)
 

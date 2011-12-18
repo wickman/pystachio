@@ -17,6 +17,7 @@ class ListContainer(ObjectBase):
     set to the contained type.  If you want a concrete List type, see the
     List() function.
   """
+  _MEMOIZED_TYPES = {}
 
   def __init__(self, vals):
     self._values = self._coerce_values(copy.deepcopy(vals))
@@ -74,12 +75,13 @@ class ListContainer(ObjectBase):
       unbound.update(eunbound)
     return self.__class__(interpolated), list(unbound)
 
-
 def List(object_type):
   assert isclass(object_type)
   assert issubclass(object_type, ObjectBase)
-  return type.__new__(type, '%sList' % object_type.__name__, (ListContainer,),
-    { 'TYPE': object_type })
+  if object_type not in ListContainer._MEMOIZED_TYPES:
+    ListContainer._MEMOIZED_TYPES[object_type] = type.__new__(
+      type, '%sList' % object_type.__name__, (ListContainer,), { 'TYPE': object_type })
+  return ListContainer._MEMOIZED_TYPES[object_type]
 
 
 class MapContainer(ObjectBase):
@@ -89,6 +91,7 @@ class MapContainer(ObjectBase):
     cls.VALUETYPE to be set to the appropriate types.  If you want a
     concrete Map type, see the Map() function.
   """
+  _MEMOIZED_TYPES = {}
 
   def __init__(self, input_map):
     self._map = self._coerce_map(copy.deepcopy(input_map))
@@ -154,5 +157,8 @@ class MapContainer(ObjectBase):
 def Map(key_type, value_type):
   assert isclass(key_type) and isclass(value_type)
   assert issubclass(key_type, ObjectBase) and issubclass(value_type, ObjectBase)
-  return type.__new__(type, '%s%sMap' % (key_type.__name__, value_type.__name__), (MapContainer,),
-    { 'KEYTYPE': key_type, 'VALUETYPE': value_type })
+  if (key_type, value_type) not in MapContainer._MEMOIZED_TYPES:
+    MapContainer._MEMOIZED_TYPES[(key_type, value_type)] = type.__new__(
+      type, '%s%sMap' % (key_type.__name__, value_type.__name__), (MapContainer,),
+        { 'KEYTYPE': key_type, 'VALUETYPE': value_type })
+  return MapContainer._MEMOIZED_TYPES[(key_type, value_type)]

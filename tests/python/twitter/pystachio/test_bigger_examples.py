@@ -45,3 +45,32 @@ def test_simple_task():
   assert unbound == []
   assert bi.check().ok()
 
+def test_type_type_type():
+  ages = Map(String,Integer)({
+    'brian': 30,
+    'robey': 5000,
+    'ian': 15
+  })
+
+  wtf = Map(Map(String, Integer), Float)({
+    ages: 1.0
+  })
+
+  assert Map(String,Integer) == Map(String,Integer)
+  assert isinstance(Map(String,Integer)({}), Map(String,Integer))
+  assert isinstance(Map(Map(String,Integer),Integer)({}), Map(Map(String,Integer),Integer))
+
+def test_recursive_unwrapping():
+  task = {
+    'name': 'basic',
+    'processes': [
+      {
+        'name': 'process1',
+        'resources': {
+           'cpu': 1.0,
+           'ram': 100},
+        'cmdline': 'echo hello world'
+      }
+    ]
+  }
+  assert Task(**task).check().ok()
