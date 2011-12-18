@@ -35,6 +35,9 @@ setup(
   cmdclass             = {
     'test': PyTest
   },
+  scripts              = [
+    'bin/pystachio_repl'
+  ],
   classifiers          = [
     'Programming Language :: Python',
     'Intended Audience :: Developers',
