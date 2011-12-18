@@ -76,3 +76,8 @@ def test_recursive_unwrapping():
   assert Task(**task).check().ok()
   assert Task(task).check().ok()
   assert Task(task, **task).check().ok()
+
+  task['processes'][0].pop('name')
+  assert not Task(task).check().ok()
+  assert not Task(**task).check().ok()
+  assert not Task(task, **task).check().ok()

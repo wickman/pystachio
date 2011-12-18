@@ -383,3 +383,64 @@ number, so San Jose or San Francisco, his number remains the same:
     PhoneBook(city=String(San Francisco),
               people=PhoneBookEntryList(PhoneBookEntry(name=String(Jenny), number=Integer(4158675309)),
                                         PhoneBookEntry(name=String(Brian), number=Integer(4025551234))))
+
+
+## Magic ##
+
+Because of how `Composite` based schemas are created, the constructor of
+such a schema behaves like a deserialization mechanism from a straight
+Python dictionary.  In a sense, deserialization comes for free.  Take the
+schema defined below:
+
+    class Resources(Composite):
+      cpu  = Required(Float)
+      ram  = Required(Integer)
+      disk = Default(Integer, 2 * 2**30)
+
+    class Process(Composite):
+      name         = Required(String)
+      resources    = Required(Resources)
+      cmdline      = String
+      max_failures = Default(Integer, 1)
+
+    class Task(Composite):
+      name         = Required(String)
+      processes    = Required(List(Process))
+      max_failures = Default(Integer, 1)
+
+Let's write out a task as a dictionary, as we would expect to see from the schema:
+
+    task = {
+      'name': 'basic',
+      'processes': [
+        {
+          'resources': {
+             'cpu': 1.0,
+             'ram': 100
+           },
+          'cmdline': 'echo hello world'
+        }
+      ]
+    }
+
+And instantiate it as a Task (indentation provided for clarity):
+
+    >>> tsk = Task(task)
+    >>> tsk
+    Task(processes=ProcessList(
+           Process(cmdline=String(echo hello world),
+                   max_failures=Integer(1),
+                   resources=Resources(disk=Integer(2147483648), ram=Integer(100), cpu=Float(1.0)))),
+         max_failures=Integer(1),
+         name=String(basic))
+
+The schema that we defined as a Python class structure is applied
+recursively to the dictionary.  In fact, we can even type check the
+dictionary:
+
+    >>> tsk.check()
+    TypeCheck(FAILED): Task[processes] failed: Element in ProcessList failed check: Process[name] is required.
+
+It turns out that we forgot to specify the name of the `Process` in our
+process list, and it was a `Required` field.  If we update the dictionary to
+specify 'name', it will type check successfully.
