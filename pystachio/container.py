@@ -68,7 +68,6 @@ class ListContainer(ObjectBase, Schema):
       if isinstance(value, self.TYPE):
         return value
       else:
-        print 'self.TYPE = %s' % self.TYPE
         return self.TYPE(value)
     return map(coerced, values)
 
