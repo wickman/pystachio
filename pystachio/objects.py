@@ -77,6 +77,10 @@ class ObjectBase(object):
   def get(self):
     raise NotImplementedError
 
+  def __hash__(self):
+    si, _ = self.interpolate()
+    return hash(si.get())
+
   def copy(self):
     """
       Return a copy of this object.
@@ -185,10 +189,6 @@ class Object(ObjectBase):
 
   def __ge__(self, other):
     return self._my_cmp(other) >= 0
-
-  def __hash__(self):
-    si, _ = self.interpolate()
-    return hash(si._value)
 
   def __repr__(self):
     si, _ = self.interpolate()

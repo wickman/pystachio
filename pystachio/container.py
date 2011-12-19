@@ -167,7 +167,7 @@ class MapContainer(ObjectBase, Schema):
       coerced_key = key if isinstance(key, self.KEYTYPE) else self.KEYTYPE(key)
       coerced_value = value if isinstance(value, self.VALUETYPE) else self.VALUETYPE(value)
       return (coerced_key, coerced_value)
-    return frozendict(coerced(key, value) for key, value in input_map.items())
+    return dict(coerced(key, value) for key, value in input_map.items())
 
   def check(self):
     if not isinstance(self._map, Mapping):

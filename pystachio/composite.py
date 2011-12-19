@@ -142,6 +142,7 @@ class Composite(ObjectBase, Schema):
     self._schema_data = {}
     for attr in self.TYPEMAP:
       self._schema_data[attr] = self.TYPEMAP[attr].default
+    self._schema_data = frozendict(self._schema_data)
 
   def _update_schema_data(self, **kw):
     for attr in kw:
