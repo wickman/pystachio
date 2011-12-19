@@ -77,9 +77,9 @@ def Default(cls, default):
   return TypeSignature(cls, required=False, default=default)
 
 
-class CompositeMetaclass(type):
+class StructMetaclass(type):
   """
-    Schema-extracting metaclass for Composite objects.
+    Schema-extracting metaclass for Struct objects.
   """
 
   @staticmethod
@@ -94,15 +94,15 @@ class CompositeMetaclass(type):
     return attributes
 
   def __new__(mcls, name, parents, attributes):
-    augmented_attributes = CompositeMetaclass.extract_typemap(attributes)
+    augmented_attributes = StructMetaclass.extract_typemap(attributes)
     return type.__new__(mcls, name, parents, augmented_attributes)
 
 
-class Composite(ObjectBase, Schema):
+class Struct(ObjectBase, Schema):
   """
     Schema-based composite objects, e.g.
 
-      class Employee(Composite):
+      class Employee(Struct):
         first = Required(String)
         last  = Required(String)
         email = Required(String)
@@ -119,7 +119,7 @@ class Composite(ObjectBase, Schema):
       >>> brian
       Employee(first=String(brian))
   """
-  __metaclass__ = CompositeMetaclass
+  __metaclass__ = StructMetaclass
 
   def __init__(self, *args, **kw):
     self._init_schema_data()
@@ -167,7 +167,7 @@ class Composite(ObjectBase, Schema):
     return new_self
 
   def __eq__(self, other):
-    if not isinstance(other, Composite): return False
+    if not isinstance(other, Struct): return False
     if self.TYPEMAP != other.TYPEMAP: return False
     si = self.interpolate()
     oi = other.interpolate()
@@ -207,7 +207,7 @@ class Composite(ObjectBase, Schema):
 
   @classmethod
   def schema_name(cls):
-    return 'Composite'
+    return 'Struct'
 
   @classmethod
   def serialize_schema(cls):
@@ -233,6 +233,6 @@ class Composite(ObjectBase, Schema):
         typemap[name] = TypeSignature(real_class, default=real_class(default), required=req)
       else:
         typemap[name] = TypeSignature(real_class, required=req)
-    return CompositeMetaclass(schema_parameters['__name__'], (Composite,), typemap)
+    return StructMetaclass(schema_parameters['__name__'], (Struct,), typemap)
 
-Schema.register_schema(Composite)
+Schema.register_schema(Struct)

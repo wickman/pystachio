@@ -18,6 +18,6 @@ from container import (
   Map)
 
 from composite import (
-  Composite,
+  Struct,
   Required,
   Default)

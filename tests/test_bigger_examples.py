@@ -3,24 +3,24 @@ import unittest
 
 from pystachio import *
 
-class CommandLine(Composite):
+class CommandLine(Struct):
   binary = Required(String)
   args   = List(String)
   params = Map(String, String)
 
-class Resources(Composite):
+class Resources(Struct):
   cpu  = Required(Float)
   ram  = Required(Integer)
   disk = Default(Integer, 2 * 2**30)
 
-class Process(Composite):
+class Process(Struct):
   name         = Required(String)
   resources    = Required(Resources)
   cmdline      = String
   command      = CommandLine
   max_failures = Default(Integer, 1)
 
-class Task(Composite):
+class Task(Struct):
   name         = Required(String)
   processes    = Required(List(Process))
   max_failures = Default(Integer, 1)

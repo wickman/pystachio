@@ -26,20 +26,20 @@ Notable related projects:
 
 ## Requirements ##
 
-Tested on Python 2.6 - 2.7.  Most likely won't work prior to 2.6.x.
-Definitely won't work on Python 3.2.x because of metaclass issues but those
-are minor.
+Tested on CPython 2.6, 2.7 and PyPy 1.6.  Most likely won't work with
+CPythons pre-2.6.x.  Definitely won't work on CPython 3.2.x because of
+metaclass syntax issues, but that's probably a minor change.
 
 ## Overview ##
 
-You can define a structured type through the 'Composite' type:
+You can define a structured type through the 'Struct' type:
 
     from pystachio import (
       Integer,
       String,
-      Composite)
+      Struct)
 
-    class Employee(Composite):
+    class Employee(Struct):
       first = String
       last  = String
       age   = Integer
@@ -59,7 +59,7 @@ But it is possible to make certain fields required:
 
     from pystachio import Required
 
-    class Employee(Composite):
+    class Employee(Struct):
       first = Required(String)
       last  = Required(String)
       age   = Integer
@@ -76,7 +76,7 @@ But they will fail type checks:
     TypeCheck(FAILED): Employee[last] is required.
 
 
-Composite objects are purely functional and hence immutable after
+Struct objects are purely functional and hence immutable after
 constructed, however they are composable like functors:
 
     >>> brian = Employee(first = 'brian')
@@ -91,7 +91,7 @@ constructed, however they are composable like functors:
 
 Object fields may also acquire defaults:
 
-    class Employee(Composite):
+    class Employee(Struct):
       first    = Required(String)
       last     = Required(String)
       age      = Integer
@@ -103,12 +103,12 @@ Object fields may also acquire defaults:
 
 Schemas wouldn't be terribly useful without the ability to be hierarchical:
 
-    class Location(Composite):
+    class Location(Struct):
       city = String
       state = String
       country = String
 
-    class Employee(Composite):
+    class Employee(Struct):
       first    = Required(String)
       last     = Required(String)
       age      = Integer
@@ -123,7 +123,7 @@ Schemas wouldn't be terribly useful without the ability to be hierarchical:
 
 ## The type system ##
 
-There are three basic types, two basic container types and then the `Composite` type.
+There are three basic types, two basic container types and then the `Struct` type.
 
 ### Basic Types ###
 
@@ -311,7 +311,7 @@ Alternatively we can bind `env` into `obj` as if they were global variables usin
 
 You can see the local variables take precedence.  The use of scoping will
 become more obvious when scope-inheritance is explained in the context of
-`Composite` types.
+`Struct` types.
 
 ## Templating ##
 
@@ -377,16 +377,16 @@ view and interpolated on-demand:
 
 ## Templating scope inheritance ##
 
-The use of templating is most powerful in the use of `Composite` types where
+The use of templating is most powerful in the use of `Struct` types where
 parent object scope is inherited by all children.
 
 Let's look at the example of building a phone book type.
 
-    class PhoneBookEntry(Composite):
+    class PhoneBookEntry(Struct):
       name = Required(String)
       number = Required(Integer)
 
-    class PhoneBook(Composite):
+    class PhoneBook(Struct):
       city = Required(String)
       people = List(PhoneBookEntry)
 
@@ -428,23 +428,23 @@ number, so San Jose or San Francisco, his number remains the same:
 
 ## Magic ##
 
-Because of how `Composite` based schemas are created, the constructor of
+Because of how `Struct` based schemas are created, the constructor of
 such a schema behaves like a deserialization mechanism from a straight
 Python dictionary.  In a sense, deserialization comes for free.  Take the
 schema defined below:
 
-    class Resources(Composite):
+    class Resources(Struct):
       cpu  = Required(Float)
       ram  = Required(Integer)
       disk = Default(Integer, 2 * 2**30)
 
-    class Process(Composite):
+    class Process(Struct):
       name         = Required(String)
       resources    = Required(Resources)
       cmdline      = String
       max_failures = Default(Integer, 1)
 
-    class Task(Composite):
+    class Task(Struct):
       name         = Required(String)
       processes    = Required(List(Process))
       max_failures = Default(Integer, 1)

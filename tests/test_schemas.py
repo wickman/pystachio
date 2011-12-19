@@ -29,7 +29,7 @@ def test_complex_schemas():
           assert Schema.deserialize_schema(Map(typ2, typ1).serialize_schema()) == Map(typ2, typ1)
 
 def test_composite_schemas_are_not_lossy():
-  class C1(Composite):
+  class C1(Struct):
     required_attribute = Required(Integer)
     optional_attribute = Float
     default_attribute  = Default(String, "Hello")
@@ -40,7 +40,7 @@ def test_composite_schemas_are_not_lossy():
     optional_map       = Map(Integer, Float)
     default_map        = Default(Map(Float, Integer), {1.0: 2, 2.0: 3})
 
-  class M1(Composite):
+  class M1(Struct):
     required_attribute = Required(Integer)
     optional_attribute = Float
     default_attribute  = Default(String, "Hello")
@@ -68,12 +68,12 @@ def test_composite_schemas_are_not_lossy():
             'Unwrapping/rewrapping should leave values intact')
 
 def test_recursive_unwrapping():
-  class Employee(Composite):
+  class Employee(Struct):
     name = Required(String)
     location = Default(String, "San Francisco")
     age = Integer
 
-  class Employer(Composite):
+  class Employer(Struct):
     name = Required(String)
     employees = Default(List(Employee), [Employee(name = 'Bob')])
 

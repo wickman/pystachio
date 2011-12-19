@@ -7,12 +7,12 @@ from pystachio import (
   Float,
   Map,
   List,
-  Composite,
+  Struct,
   Default,
   Required)
 
 def test_basic_types():
-  class Resources(Composite):
+  class Resources(Struct):
     cpu = Float
     ram = Integer
   assert Resources().check().ok()
@@ -23,10 +23,10 @@ def test_basic_types():
 
 
 def test_nested_composites():
-  class Resources(Composite):
+  class Resources(Struct):
     cpu = Float
     ram = Integer
-  class Process(Composite):
+  class Process(Struct):
     name = String
     resources = Resources
   assert Process().check().ok()
@@ -37,13 +37,13 @@ def test_nested_composites():
   assert Process(name = 15)(resources = Resources(cpu = 1.0)).check().ok()
 
 def test_defaults():
-  class Resources(Composite):
+  class Resources(Struct):
     cpu = Default(Float, 1.0)
     ram = Integer
   assert Resources() == Resources(cpu = 1.0)
   assert Resources(cpu = 2.0)._schema_data['cpu'] == Float(2.0)
 
-  class Process(Composite):
+  class Process(Struct):
     name = String
     resources = Default(Resources, Resources(ram = 10))
 
@@ -53,12 +53,12 @@ def test_defaults():
   assert Process()(resources = Empty).check().ok()
 
 def test_composite_interpolation():
-  class Resources(Composite):
+  class Resources(Struct):
     cpu = Required(Float)
     ram = Integer
     disk = Integer
 
-  class Process(Composite):
+  class Process(Struct):
     name = Required(String)
     resources = Map(String, Resources)
 
