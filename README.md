@@ -1,13 +1,28 @@
 # Pystachio #
 
-Pystachio is a library for generating structured-type overlays onto ordinary
-Python objects.  Its intended use is for the construction of miniature DSLs.
+### tl;dr ###
 
-The 'stache' part of Pystachio refers to the lazy referencing feature of the
-generated objects, which is done exclusively with Mustache templates.  As
-such, Mustache templates are first class citizens in Pystachio.
+Pystachio is a recursively type-checked dictionary tempating library.
+
+### why? ###
+
+Its primary use is for the construction of miniature DSLs.  Schemas defined
+by Pystachio can themselves be serialized and reconstructed into other
+Python interpreters.
+
+The 'stache' part of Pystachio refers to the lazily interpolated Mustache
+templating and scoped variable binding which is generally useful for the
+construction of configuration DSLs.
+
+## Similar projects ##
 
 This project is unrelated to the defunct Javascript Python interpreter.
+
+Notable related projects:
+
+* [dictshield](http://github.com/j2labs/dictshield)
+* [remoteobjects](http://github.com/saymedia/remoteobjects)
+* Django's [model.Model](https://docs.djangoproject.com/en/dev/ref/models/instances/)
 
 ## Requirements ##
 
