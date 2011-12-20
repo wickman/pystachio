@@ -2,13 +2,13 @@ from collections import Mapping
 import copy
 from inspect import isclass
 
-from objects import (
+from pystachio.objects import (
   Empty,
   ObjectBase,
   TypeCheck,
   frozendict)
-from schema import Schema
-from naming import Dereferenced
+from pystachio.schema import Schema
+from pystachio.naming import Dereferenced
 
 class TypeSignature(object):
   """
@@ -94,9 +94,9 @@ class StructMetaclass(type):
     attributes['TYPEMAP'] = typemap
     return attributes
 
-  def __new__(mcls, name, parents, attributes):
+  def __new__(mcs, name, parents, attributes):
     augmented_attributes = StructMetaclass.extract_typemap(attributes)
-    return type.__new__(mcls, name, parents, augmented_attributes)
+    return type.__new__(mcs, name, parents, augmented_attributes)
 
 
 class Struct(ObjectBase, Schema, Dereferenced):

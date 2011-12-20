@@ -4,16 +4,12 @@ from collections import (
 import copy
 from inspect import isclass
 
-from naming import Indexed
-
-from objects import (
-  Empty,
+from pystachio.naming import Indexed
+from pystachio.objects import (
   ObjectBase,
-  Object,
   TypeCheck,
   frozendict)
-
-from schema import Schema
+from pystachio.schema import Schema
 
 class ListContainer(ObjectBase, Schema, Indexed):
   """
@@ -25,16 +21,16 @@ class ListContainer(ObjectBase, Schema, Indexed):
   _MEMOIZED_TYPES = {}
 
   @staticmethod
-  def new(cls):
+  def new(klazz):
     """
-      Construct a List containing type 'cls'.
+      Construct a List containing type 'klazz'.
     """
-    assert isclass(cls)
-    assert issubclass(cls, ObjectBase)
-    if cls not in ListContainer._MEMOIZED_TYPES:
-      ListContainer._MEMOIZED_TYPES[cls] = type('%sList' % cls.__name__,
-        (ListContainer,), { 'TYPE': cls })
-    return ListContainer._MEMOIZED_TYPES[cls]
+    assert isclass(klazz)
+    assert issubclass(klazz, ObjectBase)
+    if klazz not in ListContainer._MEMOIZED_TYPES:
+      ListContainer._MEMOIZED_TYPES[klazz] = type('%sList' % klazz.__name__,
+        (ListContainer,), { 'TYPE': klazz })
+    return ListContainer._MEMOIZED_TYPES[klazz]
 
   def __init__(self, vals):
     self._values = self._coerce_values(copy.deepcopy(vals))
@@ -118,7 +114,7 @@ class ListContainer(ObjectBase, Schema, Indexed):
 
   @staticmethod
   def deserialize_schema(schema):
-    schema_name, schema_parameters = schema
+    _, schema_parameters = schema
     contained_type = Schema.deserialize_schema(schema_parameters['__containing__'])
     real_type = ListContainer.new(contained_type)
     assert schema_parameters['__name__'] == real_type.__name__
@@ -231,7 +227,7 @@ class MapContainer(ObjectBase, Schema, Indexed):
 
   @staticmethod
   def deserialize_schema(schema):
-    schema_name, schema_parameters = schema
+    _, schema_parameters = schema
     key_type = Schema.deserialize_schema(schema_parameters['__keys__'])
     value_type = Schema.deserialize_schema(schema_parameters['__values__'])
     real_type = MapContainer.new(key_type, value_type)

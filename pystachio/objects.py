@@ -1,12 +1,9 @@
 import copy
-from collections import Iterable, Mapping
-from inspect import isclass
 
-from naming import Namable
-from environment import Environment
-from parsing import MustacheParser
-from schema import Schemaless
-
+from pystachio.environment import Environment
+from pystachio.naming import Namable
+from pystachio.parsing import MustacheParser
+from pystachio.schema import Schemaless
 
 class Empty(object):
   """The Empty sentinel representing an unspecified field."""

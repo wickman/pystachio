@@ -1,4 +1,4 @@
-from naming import Dereferenced
+from pystachio.naming import Dereferenced
 
 class Environment(dict, Dereferenced):
   """

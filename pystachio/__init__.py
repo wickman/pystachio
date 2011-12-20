@@ -2,21 +2,21 @@ __author__ = 'Brian Wickman'
 __version__ = '0.1.0'
 __license__ = 'MIT'
 
-from parsing import MustacheParser
-from naming import Ref
-from environment import Environment
+from pystachio.parsing import MustacheParser
+from pystachio.naming import Ref
+from pystachio.environment import Environment
 
-from objects import (
+from pystachio.objects import (
   Empty,
   Float,
   Integer,
   String)
 
-from container import (
+from pystachio.container import (
   List,
   Map)
 
-from composite import (
+from pystachio.composite import (
   Struct,
   Required,
   Default)

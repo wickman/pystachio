@@ -1,7 +1,6 @@
-import copy
 import re
 
-from naming import Namable, Ref
+from pystachio.naming import Namable, Ref
 
 class MustacheParser(object):
   """
@@ -30,7 +29,7 @@ class MustacheParser(object):
       elif splits[k] == None:
         outsplits.append(Ref(splits[k+1]))
       else:
-        raise Exception("Unexpected parsing error in Mustache regular expression, splits[%s] = '%s'" % (
+        raise Exception("Unexpected parsing error in Mustache: splits[%s] = '%s'" % (
           k, splits[k]))
       if splits[k+2]:
         outsplits.append(splits[k+2])
