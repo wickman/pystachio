@@ -8,6 +8,7 @@ from objects import (
   TypeCheck,
   frozendict)
 from schema import Schema
+from naming import Dereferenced
 
 class TypeSignature(object):
   """
@@ -98,7 +99,7 @@ class StructMetaclass(type):
     return type.__new__(mcls, name, parents, augmented_attributes)
 
 
-class Struct(ObjectBase, Schema):
+class Struct(ObjectBase, Schema, Dereferenced):
   """
     Schema-based composite objects, e.g.
 
@@ -158,7 +159,7 @@ class Struct(ObjectBase, Schema):
 
   def copy(self):
     new_object = self.__class__(**self._schema_data)
-    new_object._environment = copy.deepcopy(self._environment)
+    new_object._scopes = copy.deepcopy(self.scopes())
     return new_object
 
   def __call__(self, **kw):
@@ -200,7 +201,7 @@ class Struct(ObjectBase, Schema):
       if value is Empty:
         interpolated_schema_data[key] = Empty
       else:
-        vinterp, vunbound = value.in_scope(self.environment()).interpolate()
+        vinterp, vunbound = value.in_scope(*self.scopes()).interpolate()
         unbound.update(vunbound)
         interpolated_schema_data[key] = vinterp
     return self.__class__(**interpolated_schema_data), list(unbound)
@@ -234,5 +235,11 @@ class Struct(ObjectBase, Schema):
       else:
         typemap[name] = TypeSignature(real_class, required=req)
     return StructMetaclass(schema_parameters['__name__'], (Struct,), typemap)
+
+  def lookup(self, name):
+    if name in self.TYPEMAP and self._schema_data[name] is not Empty:
+      return self._schema_data[name]
+    else:
+      raise Dereferenced.Unresolvable(name)
 
 Schema.register_schema(Struct)

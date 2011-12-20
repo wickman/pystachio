@@ -2,9 +2,9 @@ import copy
 from collections import Iterable, Mapping
 from inspect import isclass
 
-from parsing import (
-  Environment,
-  MustacheParser)
+from naming import Namable
+from environment import Environment
+from parsing import MustacheParser
 from schema import Schemaless
 
 
@@ -72,7 +72,7 @@ class ObjectBase(object):
     raise NotImplementedError
 
   def __init__(self):
-    self._environment = Environment()
+    self._scopes = []
 
   def get(self):
     raise NotImplementedError
@@ -87,12 +87,25 @@ class ObjectBase(object):
     """
     raise NotImplementedError
 
+  @staticmethod
+  def translate_to_scopes(*args, **kw):
+    scopes = []
+    for arg in args:
+      if isinstance(arg, Namable):
+        scopes.insert(0, arg)
+      else:
+        scopes.insert(0, Environment.wrap(arg))
+    if kw:
+      scopes.insert(0, Environment(**kw))
+    return scopes
+
   def bind(self, *args, **kw):
     """
       Bind environment variables into this object's scope.
     """
     new_self = self.copy()
-    Environment.merge(new_self._environment, Environment(*args, **kw))
+    new_scopes = ObjectBase.translate_to_scopes(*args, **kw)
+    new_self._scopes = new_scopes + new_self._scopes
     return new_self
 
   def in_scope(self, *args, **kw):
@@ -100,13 +113,12 @@ class ObjectBase(object):
       Scope this object to a parent environment (like bind but reversed.)
     """
     new_self = self.copy()
-    parent_environment = Environment(*args, **kw)
-    Environment.merge(parent_environment, new_self._environment)
-    new_self._environment = parent_environment
+    new_scopes = ObjectBase.translate_to_scopes(*args, **kw)
+    new_self._scopes = new_self._scopes + new_scopes
     return new_self
 
-  def environment(self):
-    return self._environment
+  def scopes(self):
+    return self._scopes
 
   def check(self):
     """
@@ -118,15 +130,10 @@ class ObjectBase(object):
   def __ne__(self, other):
     return not (self == other)
 
-  def __mod__(self, environment):
-    def extract_environment(env):
-      if isinstance(env, Mapping):
-        return env
-      elif isinstance(env, ObjectBase):
-        return env.environment()
-      else:
-        raise ValueError("Must interpolate within the context of a mapping or other Object.")
-    interp, _ = self.in_scope(extract_environment(environment)).interpolate()
+  def __mod__(self, namable):
+    if isinstance(namable, dict):
+      namable = Environment.wrap(namable)
+    interp, _ = self.in_scope(namable).interpolate()
     return interp
 
   def interpolate(self):
@@ -145,7 +152,7 @@ class ObjectBase(object):
 
 class Object(ObjectBase):
   """
-    A simply-valued object.
+    A simply-valued (unnamable) object.
   """
   class CoercionError(Exception):
     def __init__(self, src, dst):
@@ -160,7 +167,7 @@ class Object(ObjectBase):
 
   def copy(self):
     new_self = self.__class__(self._value)
-    new_self._environment = copy.deepcopy(self.environment())
+    new_self._scopes = copy.deepcopy(self.scopes())
     return new_self
 
   def _my_cmp(self, other):
@@ -190,20 +197,24 @@ class Object(ObjectBase):
   def __ge__(self, other):
     return self._my_cmp(other) >= 0
 
-  def __repr__(self):
+  def __unicode__(self):
     si, _ = self.interpolate()
-    return '%s(%s)' % (self.__class__.__name__, si._value)
+    return unicode(si._value)
+
+  def __repr__(self):
+    return '%s(%s)' % (self.__class__.__name__, unicode(self))
 
   def interpolate(self):
     if not isinstance(self._value, basestring):
       return self.__class__(self.coerce(self._value)), []
     else:
       splits = MustacheParser.split(self._value)
-      joins, unbound = MustacheParser.join(splits, self._environment, strict=False)
+      joins, unbound = MustacheParser.join(splits, *self.scopes(), strict=False)
       if unbound:
         return self.__class__(joins), unbound
       else:
         self_copy = self.copy()
+        # TODO(wickman) Are these actually the correct semantics?
         if hasattr(self_copy, 'coerce') and callable(self_copy.coerce):
           self_copy._value = self_copy.coerce(joins)
         else:

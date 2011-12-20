@@ -3,7 +3,8 @@ import unittest
 from pystachio import (
   String,
   Integer,
-  Float)
+  Float,
+  Environment)
 from pystachio.objects import Object
 
 def test_bad_inputs():
@@ -42,10 +43,9 @@ def test_float_constructors():
   for input in good_inputs:
     '%s' % Float(input)
 
-  assert Float(u' {{herp}}.{{derp}} ') % {
-    'herp': 1,
-    'derp': '2e3'
-  } == Float(1.2e3)
+  assert Float(u' {{herp}}.{{derp}} ') % Environment(
+    herp = 1,
+    derp = '2e3') == Float(1.2e3)
 
 
 def test_integer_constructors():

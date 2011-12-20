@@ -49,8 +49,9 @@ By default all fields are optional:
 
     >>> Employee().check()
     TypeCheck(OK)
+
     >>> Employee(first = 'brian')
-    Employee(first=String(brian))
+    Employee(first=brian)
     >>> Employee(first = 'brian').check()
     TypeCheck(OK)
 
@@ -81,9 +82,9 @@ constructed, however they are composable like functors:
 
     >>> brian = Employee(first = 'brian')
     >>> brian(last = 'wickman')
-    Employee(last=String(wickman), first=String(brian))
+    Employee(last=wickman, first=brian)
     >>> brian
-    Employee(first=String(brian))
+    Employee(first=brian)
     >>> brian = brian(last='wickman')
     >>> brian.check()
     TypeCheck(OK)
@@ -98,7 +99,7 @@ Object fields may also acquire defaults:
       location = Default(String, "San Francisco")
 
     >>> Employee()
-    Employee(location=String(San Francisco))
+    Employee(location=San Francisco)
 
 
 Schemas wouldn't be terribly useful without the ability to be hierarchical:
@@ -115,7 +116,7 @@ Schemas wouldn't be terribly useful without the ability to be hierarchical:
       location = Default(Location, Location(city = "San Francisco"))
 
     >>> Employee(first="brian", last="wickman")
-    Employee(last=String(wickman), location=Location(city=String(San Francisco)), first=String(brian))
+    Employee(last=wickman, location=Location(city=San Francisco), first=brian)
 
     >>> Employee(first="brian", last="wickman").check()
     TypeCheck(OK)
@@ -169,7 +170,8 @@ metaclass, since it produces a type):
     >>> List(String)([])
     StringList()
     >>> List(String)(["a", "b", "c"])
-    StringList(String(a), String(b), String(c))
+    StringList(a, b, c)
+
 
 They compose like expected:
 
@@ -179,8 +181,7 @@ They compose like expected:
     >>> List(li)
     <class 'pystachio.container.IntegerListList'>
     >>> List(li)([li([1,"2",3]), li([' 2', '3 ', 4])])
-    IntegerListList(IntegerList(Integer(1), Integer(2), Integer(3)),
-                    IntegerList(Integer(2), Integer(3), Integer(4)))
+    IntegerListList(IntegerList(1, 2, 3), IntegerList(2, 3, 4))
 
 
 Type checking is done recursively:
@@ -199,7 +200,7 @@ You construct a `Map` by specifying the source and destination types:
     ...   'robey': 5000
     ... })
     >>> ages
-    StringIntegerMap(String(brian) => Integer(30), String(ian) => Integer(15), String(robey) => Integer(5000))
+    StringIntegerMap(brian => 28, ian => 15, robey => 5000)
     >>> ages.check()
     TypeCheck(OK)
 
@@ -224,19 +225,20 @@ types are hashable as well, so you can construct stranger composite types
     ... })
     >>> believability
     StringIntegerMapFloatMap(
-      StringIntegerMap(String(brian) => Integer(28), String(ian) => Integer(15), String(robey) => Integer(5000)) => Float(0.2),
-      StringIntegerMap(String(brian) => Integer(30), String(ian) => Integer(21), String(robey) => Integer(35)) => Float(0.9))
+      StringIntegerMap(brian => 28, ian => 15, robey => 5000) => 0.2,
+      StringIntegerMap(brian => 30, ian => 21, robey => 35) => 0.9)
+
 
 
 ## Object scopes ##
 
-Objects have a scope: a set of "environment" variables that follow the
-Object around.  Objects are still immutable.  The act of binding a variable
-to an Object just creates a new object.  You can print the environment by
-using the `environment` function:
+Objects have "environments": a set of bound scopes that follow the Object
+around.  Objects are still immutable.  The act of binding a variable to an
+Object just creates a new object with an additional variable scope.  You can
+print the scopes by using the `scopes` function:
 
-    >>> String("hello").environment()
-    {}
+    >>> String("hello").scopes()
+    []
 
 You can bind variables to that object with the `bind` function:
 
@@ -250,24 +252,36 @@ The environment variables of an object do not alter equality, for example:
     >>> String("hello").bind(foo = "bar") == String("hello")
     True
 
-The object appears to be the same but it carries that environment around with it:
+The object appears to be the same but it carries that scope around with it:
 
-    >>> String("hello").bind(herp = "derp").environment()
-    {'herp': 'derp'}
+    >>> String("hello").bind(herp = "derp").scopes()
+    [{'herp': 'derp'}]
 
 Furthermore you can bind multiple times:
 
-    >>> String("hello").bind(herp = "derp").bind(herp = "extra derp").environment()
-    {'herp': 'extra derp'}
+    >>> String("hello").bind(herp = "derp").bind(herp = "extra derp").scopes()
+    [{'herp': 'extra derp'}, {'herp': 'derp'}]
+
 
 You can use keyword arguments, but you can also pass dictionaries directly:
 
-    >>> String("hello").bind({"herp": "derp"}).environment()
-    {'herp': 'derp'}
+    >>> String("hello").bind({"herp": "derp"}).scopes()
+    [{'herp': 'derp'}]
 
-Environments appear to be dictionaries, but they're actually of the
-`pystachio.Environment` type.  This type behaves just like a dictionary
-except that merges are done differently:
+In fact, you can bind any `Namable` object, including `List`, `Map`, and
+`Struct` types directly:
+
+    >>> class Person(Struct)
+    ...   first = String
+    ...   last = String
+    ...
+    >>> String("hello").bind(Person(first="brian")).scopes()
+    [Person(first=brian)]
+
+But `bind` takes keyword arguments and dictionaries as well.  These appear
+to be dictionaries, but they're actually of the `pystachio.Environment`
+type.  This type behaves just like a dictionary except that merges are done
+differently:
 
     >>> # for dictionaries
     >>> d1 = {'a': {'b': 1}}
@@ -281,14 +295,14 @@ In `Environment` objects, the merges are done recursively:
     >>> # for Environments
     >>> d1 = Environment({'a': {'b': 1}})
     >>> d2 = Environment({'a': {'c': 2}})
-    >>> Environment.merge(d1, d2)
+    >>> d1.merge(d2)
     >>> d1
     {'a': {'c': 2, 'b': 1}}
 
 And in fact, when you bind variables to an object, they are bound as `Environment` variables:
 
-    >>> type(String("hello").bind(foo = "bar").environment())
-    <class 'pystachio.parsing.Environment'>
+    >>> type(String("hello").bind(foo = "bar").scopes()[0])
+    <class 'pystachio.environment.Environment'>
 
 There are two types of object binding: binding directly into the object via
 `bind`, and binding into the object via inherited scope via `in_scope`.
@@ -296,24 +310,29 @@ Let's take the following example:
 
     >>> env = {'global': 'global variable', 'shared': 'global shared variable'}
     >>> obj = String("hello").bind(local = "local variable", shared = "local shared variable")
-    >>> obj.environment()
-    {'shared': 'local shared variable', 'local': 'local variable'}
+    >>> obj.scopes()
+    [{'shared': 'local shared variable', 'local': 'local variable'}]
 
 Now we can bind `env` directly into `obj` as if they were local variables using `bind`:
 
-    >>> obj.bind(env).environment()
-    {'shared': 'global shared variable', 'global': 'global variable', 'local': 'local variable'}
+    >>> obj.bind(env).scopes()
+    [{'shared': 'global shared variable', 'global': 'global variable'},
+     {'shared': 'local shared variable', 'local': 'local variable'}]
 
 Alternatively we can bind `env` into `obj` as if they were global variables using `in_scope`:
 
-    >>> obj.in_scope(env).environment()
-    {'shared': 'local shared variable', 'global': 'global variable', 'local': 'local variable'}
+    >>> obj.in_scope(env).scopes()
+    [{'shared': 'local shared variable', 'local': 'local variable'},
+     {'shared': 'global shared variable', 'global': 'global variable'}]
+
 
 You can see the local variables take precedence.  The use of scoping will
-become more obvious when scope-inheritance is explained in the context of
-`Struct` types.
+become more obvious when in the context of templating.
+
 
 ## Templating ##
+
+### Simple templates ###
 
 As briefly mentioned at the beginning, Mustache templates are first class
 "language" features.  Let's look at the simple case of a `String` to see how
@@ -338,7 +357,6 @@ should lazily coerce the `Float` only once it's fully specified by its
 environment.  For example:
 
     >>> not_floaty = Float('{{not}}.{{floaty}}')
-    >>> not_floaty.bind({'not': 1}
     >>> not_floaty.bind({'not': 1})
     Float(1.{{floaty}})
 
@@ -375,10 +393,74 @@ view and interpolated on-demand:
     '{{not}}.{{floaty}}'
 
 
+As we mentioned before, objects have scopes.  Let's look at the case of floaty:
+
+    >>> floaty = not_floaty.bind({'not': 1, 'floaty': 0})
+    >>> floaty
+    Float(1.0)
+    >>> floaty.scopes()
+    [{'not': 1, 'floaty': 0}]
+
+But if we bind `not = 2`:
+
+    >>> floaty.bind({'not': 2})
+    Float(2.0)
+    >>> floaty.bind({'not': 2}).scopes()
+    [{'not': 2}, {'not': 1, 'floaty': 0}]
+
+
+The interpolation of template variables happens in scope order from top
+down.  Ultimately `bind` just prepends a scope to the list of scopes and
+`in_scope` appends a scope to the end of the list of scopes.
+
+### Complex templates ###
+
+Remember however that you can bind any `Namable` object, which includes
+`List`, `Map`, `Struct` and `Environment` types, and these are hierarchical. 
+Take for example a schema that defines a UNIX process:
+
+    class Process(Struct):
+      name = Default(String, '{{config.name}}')
+      cmdline = String
+
+    class ProcessConfig(Struct):
+      name = String
+      ports = Map(String, Integer)
+
+The expectation could be that `Process` structures are always interpolated
+in an environment where `config` is set to the `ProcessConfig`.
+
+For example:
+
+    >>> webserver = Process(cmdline = "bin/tfe --listen={{config.ports[http]}} --health={{config.ports[health]}}")
+    >>> webserver
+    Process(cmdline=bin/tfe --listen={{config.ports[http]}} --health={{config.ports[health]}}, name={{config.name}})
+
+Now let's define its configuration:
+
+    >>> app_config = ProcessConfig(name = "tfe", ports = {'http': 80, 'health': 8888})
+    >>> app_config
+    ProcessConfig(name=tfe, ports=StringIntegerMap(http => 80, health => 8888))
+
+And let's evaluate the configuration:
+
+    >>> webserver % Environment(config = app_config)
+    Process(cmdline=bin/tfe --listen=80 --health=8888, name=tfe)
+
+The `%`-based interpolation is just shorthand for `in_scope`.
+
+`List` types and `Map` types are dereferenced as expected in the context of
+`{{}}`-style mustache templates, using `[index]` for `List` types and
+`[value]` for `Map` types.  `Struct` types are dereferenced using `.`-notation.
+
+For example, `{{foo.bar[23][baz].bang}}` translates to a name lookup chain
+of `foo (Struct) => bar (List or Map) => 23 (Map) => baz (Struct) => bang`,
+ensuring the type consistency at each level of the lookup chain.
+
 ## Templating scope inheritance ##
 
 The use of templating is most powerful in the use of `Struct` types where
-parent object scope is inherited by all children.
+parent object scope is inherited by all children during interpolation.
 
 Let's look at the example of building a phone book type.
 
@@ -407,23 +489,23 @@ But `brian` is a Nebraskan farm boy from the 402 and took his number with him:
 If we assume that Jenny is from San Francisco, then we look her up in the San Francisco phone book:
 
     >>> sf(people = [jenny])
-    PhoneBook(city=String(San Francisco),
-              people=PhoneBookEntryList(PhoneBookEntry(name=String(Jenny), number=Integer(4158675309))))
+    PhoneBook(city=San Francisco, people=PhoneBookEntryList(PhoneBookEntry(name=Jenny, number=4158675309)))
+
 
 But it's equally likely that she could be from San Jose:
 
     >>> sj(people = [jenny])
-    PhoneBook(city=String(San Jose),
-              people=PhoneBookEntryList(PhoneBookEntry(name=String(Jenny), number=Integer(4088675309))))
+    PhoneBook(city=San Jose, people=PhoneBookEntryList(PhoneBookEntry(name=Jenny, number=4088675309)))
+
 
 If we bind `jenny` to one of the phone books, she inherits the area code
 from her parent object.  Of course, `brian` is from Nebraska and he kept his
 number, so San Jose or San Francisco, his number remains the same:
 
     >>> sf(people = [jenny, brian])
-    PhoneBook(city=String(San Francisco),
-              people=PhoneBookEntryList(PhoneBookEntry(name=String(Jenny), number=Integer(4158675309)),
-                                        PhoneBookEntry(name=String(Brian), number=Integer(4025551234))))
+    PhoneBook(city=San Francisco,
+              people=PhoneBookEntryList(PhoneBookEntry(name=Jenny, number=4158675309),
+                                        PhoneBookEntry(name=Brian, number=4155551234)))
 
 
 ## Magic ##
@@ -468,12 +550,10 @@ And instantiate it as a Task (indentation provided for clarity):
 
     >>> tsk = Task(task)
     >>> tsk
-    Task(processes=ProcessList(
-           Process(cmdline=String(echo hello world),
-                   max_failures=Integer(1),
-                   resources=Resources(disk=Integer(2147483648), ram=Integer(100), cpu=Float(1.0)))),
-         max_failures=Integer(1),
-         name=String(basic))
+    Task(processes=ProcessList(Process(cmdline=echo hello world, max_failures=1,
+                                       resources=Resources(disk=2147483648, ram=100, cpu=1.0))),
+         max_failures=1, name=basic)
+
 
 The schema that we defined as a Python class structure is applied
 recursively to the dictionary.  In fact, we can even type check the

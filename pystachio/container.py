@@ -4,6 +4,8 @@ from collections import (
 import copy
 from inspect import isclass
 
+from naming import Indexed
+
 from objects import (
   Empty,
   ObjectBase,
@@ -13,7 +15,7 @@ from objects import (
 
 from schema import Schema
 
-class ListContainer(ObjectBase, Schema):
+class ListContainer(ObjectBase, Schema, Indexed):
   """
     The List container type.  This is the base class for all user-generated
     List types.  It won't function as-is, since it requires cls.TYPE to be
@@ -43,7 +45,7 @@ class ListContainer(ObjectBase, Schema):
 
   def copy(self):
     new_self = self.__class__(self._values)
-    new_self._environment = copy.deepcopy(self._environment)
+    new_self._scopes = copy.deepcopy(self.scopes())
     return new_self
 
   def __repr__(self):
@@ -88,10 +90,20 @@ class ListContainer(ObjectBase, Schema):
     unbound = set()
     interpolated = []
     for element in self._values:
-      einterp, eunbound = element.in_scope(self.environment()).interpolate()
+      einterp, eunbound = element.in_scope(*self.scopes()).interpolate()
       interpolated.append(einterp)
       unbound.update(eunbound)
     return self.__class__(interpolated), list(unbound)
+
+  def lookup(self, value):
+    try:
+      intvalue = int(value)
+    except ValueError:
+      raise Indexed.Unresolvable(value)
+    if len(self._values) > intvalue:
+      return self._values[intvalue]
+    else:
+      raise Indexed.Unresolvable(value)
 
   @classmethod
   def schema_name(cls):
@@ -116,7 +128,7 @@ Schema.register_schema(ListContainer)
 List = ListContainer.new
 
 
-class MapContainer(ObjectBase, Schema):
+class MapContainer(ObjectBase, Schema, Indexed):
   """
     The Map container type.  This is the base class for all user-generated
     Map types.  It won't function as-is, since it requires cls.KEYTYPE and
@@ -144,7 +156,7 @@ class MapContainer(ObjectBase, Schema):
 
   def copy(self):
     new_self = self.__class__(self._map)
-    new_self._environment = copy.deepcopy(self._environment)
+    new_self._scopes = copy.deepcopy(self.scopes())
     return new_self
 
   def __repr__(self):
@@ -191,12 +203,19 @@ class MapContainer(ObjectBase, Schema):
     unbound = set()
     interpolated = {}
     for key, value in self._map.items():
-      kinterp, kunbound = key.in_scope(self.environment()).interpolate()
-      vinterp, vunbound = value.in_scope(self.environment()).interpolate()
+      kinterp, kunbound = key.in_scope(*self.scopes()).interpolate()
+      vinterp, vunbound = value.in_scope(*self.scopes()).interpolate()
       unbound.update(kunbound)
       unbound.update(vunbound)
       interpolated[kinterp] = vinterp
     return self.__class__(interpolated), list(unbound)
+
+  def lookup(self, value):
+    kvalue = self.KEYTYPE(value)
+    if kvalue in self._map:
+      return self._map[kvalue]
+    else:
+      raise Indexed.Unresolvable(value)
 
   @classmethod
   def schema_name(cls):
