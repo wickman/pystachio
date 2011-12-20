@@ -2,17 +2,15 @@
 
 ### tl;dr ###
 
-Pystachio is a type-checked dictionary tempating library.
+Pystachio is a type-checked dictionary templating library.
 
 ### why? ###
 
 Its primary use is for the construction of miniature domain-specific
 configuration languages.  Schemas defined by Pystachio can themselves be
-serialized and reconstructed into other Python interpreters.
-
-The 'stache' part of Pystachio refers to the lazily interpolated Mustache
-templating and scoped variable binding which is generally useful for the
-construction of configuration DSLs.
+serialized and reconstructed into other Python interpreters.  Pystachio
+objects are tailored via Mustache templates, as explained in the section on
+templating.
 
 ## Similar projects ##
 
