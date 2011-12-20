@@ -6,9 +6,9 @@ Pystachio is a type-checked dictionary tempating library.
 
 ### why? ###
 
-Its primary use is for the construction of miniature DSLs.  Schemas defined
-by Pystachio can themselves be serialized and reconstructed into other
-Python interpreters.
+Its primary use is for the construction of miniature domain-specific
+configuration languages.  Schemas defined by Pystachio can themselves be
+serialized and reconstructed into other Python interpreters.
 
 The 'stache' part of Pystachio refers to the lazily interpolated Mustache
 templating and scoped variable binding which is generally useful for the
