@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages, Command
 
-version = '0.0.1'
+version = '0.1.0'
 
 class PyTest(Command):
   user_options = []
@@ -24,7 +24,7 @@ class PyTest(Command):
 setup(
   name                 = 'pystachio',
   version              = version,
-  description          = 'recursively-typed dictionary templating library',
+  description          = 'type-checked dictionary templating library',
   url                  = 'http://github.com/wickman/pystachio',
   author               = 'Brian Wickman',
   author_email         = 'wickman@gmail.com',

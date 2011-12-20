@@ -2,7 +2,7 @@
 
 ### tl;dr ###
 
-Pystachio is a recursively type-checked dictionary tempating library.
+Pystachio is a type-checked dictionary tempating library.
 
 ### why? ###
 
