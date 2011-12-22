@@ -1,26 +1,30 @@
 import re
+from itertools import chain
 
 class Namable(object):
   """
-    An object that exports a lookup() method for resolving names within that object.
+    An object that can be named/dereferenced.
   """
-  class Unresolvable(Exception): pass
+  class Error(Exception): pass
+  class Unnamable(Error):
+    def __init__(self, obj):
+      Namable.Error.__init__(self, 'Object is not indexable: %s' % obj.__class__.__name__)
+  class NamingError(Error):
+    def __init__(self, obj, ref):
+      Namable.Error.__init__(self, 'Cannot dereference object %s by %s' % (obj.__class__.__name__,
+        ref.action()))
+  class NotFound(Error):
+    def __init__(self, obj, ref):
+      Namable.Error.__init__(self, 'Could not find %s in object %s' % (ref.action().value, obj.__class__.__name__))
 
-  def lookup(self, name):
-    """Return whatever is named by 'name', or raise Namable.Unresolvable"""
+  def find(self, ref):
+    """
+      Given a ref, return the value referencing that ref.
+      Raises Namable.NotFound if not found.
+      Raises Namable.NamingError if try to dereference object in an invalid way.
+      Raises Namable.Unnamable if try to dereference into an unnamable type.
+    """
     raise NotImplementedError
-
-class Indexed(Namable):
-  """
-    An indexed object trait.
-    (i.e. dereferenced via array-style access with '[]')
-  """
-
-class Dereferenced(Namable):
-  """
-    A dereferenced object trait.
-    (i.e. dereferenced via '.'-style access with '.' like 'foo.bar')
-  """
 
 class Ref(object):
   """
@@ -41,12 +45,12 @@ class Ref(object):
     def __eq__(self, other):
       return self.__class__ == other.__class__ and self.value == other.value
 
-  class Indexed(Component):
+  class Index(Component):
     RE = re.compile('^\w+$')
     def __repr__(self):
       return '[%s]' % self._value
 
-  class Dereferenced(Component):
+  class Dereference(Component):
     RE = re.compile('^[a-zA-Z_]\w*$')
     def __repr__(self):
       return '.%s' % self._value
@@ -54,19 +58,61 @@ class Ref(object):
   class InvalidRefError(Exception): pass
   class UnnamableError(Exception): pass
 
-  def __init__(self, address):
+  @staticmethod
+  def wrap(value):
+    if isinstance(value, Ref):
+      return value
+    else:
+      return Ref.from_address(value)
+
+  @staticmethod
+  def compare(ref1, ref2):
+    if len(ref1.components()) < len(ref2.components()):
+      return -1
+    elif len(ref1.components()) > len(ref2.components()):
+      return 1
+    else:
+      return (ref1.components() > ref2.components()) - (ref1.components() < ref2.components())
+
+  @staticmethod
+  def from_address(address):
+    components = []
     if not address or not isinstance(address, basestring):
       raise Ref.InvalidRefError('Invalid address: %s' % repr(address))
     if not (address.startswith('[') or address.startswith('.')):
       if Ref._VALID_START.match(address[0]):
-        self._components = Ref.split_components('.' + address)
+        components = Ref.split_components('.' + address)
       else:
         raise Ref.InvalidRefError(address)
     else:
-      self._components = Ref.split_components(address)
+      components = Ref.split_components(address)
+    return Ref(components)
+
+  def __init__(self, components):
+    self._components = components
 
   def components(self):
     return self._components
+
+  def action(self):
+    return self._components[0]
+
+  def is_index(self):
+    return isinstance(self.action(), Ref.Index)
+
+  def is_dereference(self):
+    return isinstance(self.action(), Ref.Dereference)
+
+  def is_empty(self):
+    return len(self.components()) == 0
+
+  def rest(self):
+    return Ref(self.components()[1:])
+
+  def __add__(self, other):
+    sc = self.components()
+    oc = other.components()
+    return Ref(sc + oc)
 
   @staticmethod
   def subscope(ref1, ref2):
@@ -74,35 +120,22 @@ class Ref(object):
     sc = ref2.components()
     if rc == sc[0:len(rc)]:
       if len(sc) > len(rc):
-        return sc[len(rc)]
+        return Ref(sc[len(rc):])
 
   def scoped_to(self, ref):
-    """
-      Given a Ref :ref, return the immediate scoping action, or None if they
-      do not share scopes.
-
-      For example:
-        Ref("a.b[c][d]").scoped_to(Ref("a.b")) => Ref.Indexed("c")
-        Ref("a.b").scoped_to(Ref("a.b[c]")) => None
-        Ref("a.b").scoped_to(Ref("a.b")) => None
-        Ref("a.b.c").scoped_to(Ref("a.b")) => Ref.Dereferenced("c")
-    """
     return Ref.subscope(self, ref)
 
   def scoped_in(self, ref):
-    """
-      Opposite of scoped_to.
-    """
     return Ref.subscope(ref, self)
 
   @staticmethod
   def split_components(address):
     def map_to_namable(component):
       if (component.startswith('[') and component.endswith(']') and
-          Ref.Indexed.RE.match(component[1:-1])):
-        return Ref.Indexed(component[1:-1])
-      elif component.startswith('.') and Ref.Dereferenced.RE.match(component[1:]):
-        return Ref.Dereferenced(component[1:])
+          Ref.Index.RE.match(component[1:-1])):
+        return Ref.Index(component[1:-1])
+      elif component.startswith('.') and Ref.Dereference.RE.match(component[1:]):
+        return Ref.Dereference(component[1:])
       else:
         raise Ref.InvalidRefError('Address %s has bad component %s' % (address, component))
     splits = Ref._REF_RE.split(address)
@@ -125,22 +158,7 @@ class Ref(object):
     return 'Ref(%s)' % self.address()
 
   def __eq__(self, other):
-    return str(self) == str(other)
+    return self.components() == other.components()
 
   def __hash__(self):
     return hash(str(self))
-
-  def resolve(self, namable):
-    """
-      Resolve this Ref in the context of Namable namable.
-
-      Raises Namable.Unresolvable on any miss.
-    """
-    for component in self.components():
-      if isinstance(component, Ref.Indexed) and isinstance(namable, Indexed) or (
-         isinstance(component, Ref.Dereferenced) and isinstance(namable, Dereferenced)):
-        namable = namable.lookup(component.value)
-      else:
-        raise Ref.UnnamableError("Cannot resolve Ref %s from object: %s" % (
-          component, repr(namable)))
-    return namable

@@ -1,17 +1,12 @@
-from collections import (
-  Iterable,
-  Mapping)
+from collections import Iterable, Mapping
 import copy
 from inspect import isclass
 
-from pystachio.naming import Indexed
-from pystachio.objects import (
-  ObjectBase,
-  TypeCheck,
-  frozendict)
+from pystachio.base import Object, TypeCheck, frozendict
+from pystachio.naming import Namable
 from pystachio.schema import Schema
 
-class ListContainer(ObjectBase, Schema, Indexed):
+class ListContainer(Object, Schema, Namable):
   """
     The List container type.  This is the base class for all user-generated
     List types.  It won't function as-is, since it requires cls.TYPE to be
@@ -26,7 +21,7 @@ class ListContainer(ObjectBase, Schema, Indexed):
       Construct a List containing type 'klazz'.
     """
     assert isclass(klazz)
-    assert issubclass(klazz, ObjectBase)
+    assert issubclass(klazz, Object)
     if klazz not in ListContainer._MEMOIZED_TYPES:
       ListContainer._MEMOIZED_TYPES[klazz] = type('%sList' % klazz.__name__,
         (ListContainer,), { 'TYPE': klazz })
@@ -34,7 +29,7 @@ class ListContainer(ObjectBase, Schema, Indexed):
 
   def __init__(self, vals):
     self._values = self._coerce_values(copy.deepcopy(vals))
-    ObjectBase.__init__(self)
+    Object.__init__(self)
 
   def get(self):
     return [v.get() for v in self._values]
@@ -91,15 +86,24 @@ class ListContainer(ObjectBase, Schema, Indexed):
       unbound.update(eunbound)
     return self.__class__(interpolated), list(unbound)
 
-  def lookup(self, value):
+  def find(self, ref):
+    if not ref.is_index():
+      raise Namable.NamingError(self, ref)
     try:
-      intvalue = int(value)
+      intvalue = int(ref.action().value)
     except ValueError:
-      raise Indexed.Unresolvable(value)
-    if len(self._values) > intvalue:
-      return self._values[intvalue]
+      raise Namable.NotFound(self, ref)
+    if len(self._values) <= intvalue:
+      raise Namable.NotFound(self, ref)
     else:
-      raise Indexed.Unresolvable(value)
+      namable = self._values[intvalue]
+      if ref.rest().is_empty():
+        return namable.in_scope(*self.scopes())
+      else:
+        if not isinstance(namable, Namable):
+          raise Namable.Unnamable(namable)
+        else:
+          return namable.in_scope(*self.scopes()).find(ref.rest())
 
   @classmethod
   def schema_name(cls):
@@ -124,7 +128,7 @@ Schema.register_schema(ListContainer)
 List = ListContainer.new
 
 
-class MapContainer(ObjectBase, Schema, Indexed):
+class MapContainer(Object, Schema, Namable):
   """
     The Map container type.  This is the base class for all user-generated
     Map types.  It won't function as-is, since it requires cls.KEYTYPE and
@@ -136,7 +140,7 @@ class MapContainer(ObjectBase, Schema, Indexed):
   @staticmethod
   def new(key_cls, value_cls):
     assert isclass(key_cls) and isclass(value_cls)
-    assert issubclass(key_cls, ObjectBase) and issubclass(value_cls, ObjectBase)
+    assert issubclass(key_cls, Object) and issubclass(value_cls, Object)
     if (key_cls, value_cls) not in MapContainer._MEMOIZED_TYPES:
       MapContainer._MEMOIZED_TYPES[(key_cls, value_cls)] = type(
         '%s%sMap' % (key_cls.__name__, value_cls.__name__), (MapContainer,),
@@ -145,7 +149,7 @@ class MapContainer(ObjectBase, Schema, Indexed):
 
   def __init__(self, input_map):
     self._map = self._coerce_map(copy.deepcopy(input_map))
-    ObjectBase.__init__(self)
+    Object.__init__(self)
 
   def get(self):
     return frozendict((k.get(), v.get()) for (k, v) in self._map.items())
@@ -206,12 +210,21 @@ class MapContainer(ObjectBase, Schema, Indexed):
       interpolated[kinterp] = vinterp
     return self.__class__(interpolated), list(unbound)
 
-  def lookup(self, value):
-    kvalue = self.KEYTYPE(value)
-    if kvalue in self._map:
-      return self._map[kvalue]
+  def find(self, ref):
+    if not ref.is_index():
+      raise Namable.NamingError(self, ref)
+    kvalue = self.KEYTYPE(ref.action().value)
+    if kvalue not in self._map:
+      raise Namable.NotFound(self, ref)
     else:
-      raise Indexed.Unresolvable(value)
+      namable = self._map[kvalue]
+      if ref.rest().is_empty():
+        return namable.in_scope(*self.scopes())
+      else:
+        if not isinstance(namable, Namable):
+          raise Namable.Unnamable(namable)
+        else:
+          return namable.in_scope(*self.scopes()).find(ref.rest())
 
   @classmethod
   def schema_name(cls):

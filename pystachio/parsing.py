@@ -27,7 +27,7 @@ class MustacheParser(object):
       if splits[k] == MustacheParser._ADDRESS_DELIMITER:
         outsplits.append('{{%s}}' % splits[k+1])
       elif splits[k] == None:
-        outsplits.append(Ref(splits[k+1]))
+        outsplits.append(Ref.from_address(splits[k+1]))
       else:
         raise Exception("Unexpected parsing error in Mustache: splits[%s] = '%s'" % (
           k, splits[k]))
@@ -55,10 +55,11 @@ class MustacheParser(object):
         resolved = False
         for namable in namables:
           try:
-            value = ref.resolve(namable)
+            # value = ref.resolve(namable)
+            value = namable.find(ref)
             resolved = True
             break
-          except Namable.Unresolvable:
+          except Namable.Error as e:
             continue
         if resolved:
           isplits.append(value)

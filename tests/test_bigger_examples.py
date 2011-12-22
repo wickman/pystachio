@@ -1,6 +1,3 @@
-import pytest
-import unittest
-
 from pystachio import *
 
 class CommandLine(Struct):
@@ -39,7 +36,7 @@ def test_simple_task():
     ])
 
   bi, unbound = basic.interpolate()
-  assert unbound == [Ref('mesos.datacenter')]
+  assert unbound == [Ref.from_address('mesos.datacenter')]
 
   bi, unbound = (basic % {'mesos': {'datacenter': 'california'}}).interpolate()
   assert unbound == []

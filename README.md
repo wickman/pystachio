@@ -503,7 +503,7 @@ number, so San Jose or San Francisco, his number remains the same:
     >>> sf(people = [jenny, brian])
     PhoneBook(city=San Francisco,
               people=PhoneBookEntryList(PhoneBookEntry(name=Jenny, number=4158675309),
-                                        PhoneBookEntry(name=Brian, number=4155551234)))
+                                        PhoneBookEntry(name=Brian, number=4025551234)))
 
 
 ## Magic ##
