@@ -4,7 +4,7 @@
 # Run setup.sh <python binary 1> <python binary 2> ... <python binary N> to set up
 # virtual environments for running tests.  For example:
 #
-# ./setup.sh
+# ./setup.sh python2.7 python3.2 pypy
 #
 
 MY_DIR=$(dirname $0)
