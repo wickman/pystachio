@@ -14,7 +14,7 @@ def test_basic_schemas():
 
 def test_complex_schemas():
   BASIC_TYPES = (Integer, Float, String)
-  LIST_TYPES = map(List, BASIC_TYPES)
+  LIST_TYPES = [List(bt) for bt in BASIC_TYPES]
   MAP_TYPES = []
   for typ1 in BASIC_TYPES:
     for typ2 in BASIC_TYPES:
@@ -47,7 +47,7 @@ def test_composite_schemas_are_not_lossy():
     default_composite  = Default(C1, C1(required_attribute = 1, required_list = ["a", "b"]))
 
   BASIC_TYPES = [Integer, Float, String, C1, M1]
-  LIST_TYPES = map(List, BASIC_TYPES)
+  LIST_TYPES = [List(bt) for bt in BASIC_TYPES]
   MAP_TYPES = []
   for typ1 in (Integer, C1, M1):
     for typ2 in (String, C1, M1):

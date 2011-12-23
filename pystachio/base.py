@@ -1,5 +1,6 @@
 from pprint import pformat
 
+from pystachio import Types
 from pystachio.naming import (
   Ref,
   Namable)
@@ -63,7 +64,7 @@ class Environment(Namable):
     elif isinstance(value, (Environment, Object)):
       return value
     else:
-      if isinstance(value, (int, long, float, basestring)):
+      if isinstance(value, Types.numeric + Types.stringy):
         return str(value)
       else:
         raise ValueError('Error in Environment.wrap(%s)' % repr(value))
@@ -99,7 +100,7 @@ class Environment(Namable):
     if not targets:
       raise Namable.NotFound(self, ref)
     else:
-      for key in sorted(targets, cmp=Ref.compare, reverse=True):
+      for key in sorted(targets, reverse=True):
         scope = self._table[key]
         if not isinstance(scope, Namable):
           continue

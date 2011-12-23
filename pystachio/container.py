@@ -2,6 +2,7 @@ from collections import Iterable, Mapping
 import copy
 from inspect import isclass
 
+from pystachio import Types
 from pystachio.base import Object, TypeCheck, frozendict
 from pystachio.naming import Namable
 from pystachio.schema import Schema
@@ -41,7 +42,8 @@ class ListContainer(Object, Schema, Namable):
 
   def __repr__(self):
     si, _ = self.interpolate()
-    return '%s(%s)' % (self.__class__.__name__, ', '.join(map(unicode, si._values)))
+    return '%s(%s)' % (self.__class__.__name__,
+      ', '.join(str(v) if Types.PY3 else unicode(v) for v in si._values))
 
   def __eq__(self, other):
     if not isinstance(other, ListContainer): return False
@@ -52,7 +54,7 @@ class ListContainer(Object, Schema, Namable):
 
   @staticmethod
   def isiterable(values):
-    return isinstance(values, Iterable) and not isinstance(values, basestring)
+    return isinstance(values, Iterable) and not isinstance(values, Types.stringy)
 
   def _coerce_values(self, values):
     if not ListContainer.isiterable(values):
@@ -62,7 +64,7 @@ class ListContainer(Object, Schema, Namable):
         return value
       else:
         return self.TYPE(value)
-    return map(coerced, values)
+    return [coerced(v) for v in values]
 
   def check(self):
     if not ListContainer.isiterable(self._values):
@@ -153,6 +155,9 @@ class MapContainer(Object, Schema, Namable):
 
   def get(self):
     return frozendict((k.get(), v.get()) for (k, v) in self._map.items())
+
+  def __hash__(self):
+    return hash(self.get())
 
   def copy(self):
     new_self = self.__class__(self._map)

@@ -1,5 +1,6 @@
 import re
 from itertools import chain
+from pystachio import Types
 
 class Namable(object):
   """
@@ -66,18 +67,9 @@ class Ref(object):
       return Ref.from_address(value)
 
   @staticmethod
-  def compare(ref1, ref2):
-    if len(ref1.components()) < len(ref2.components()):
-      return -1
-    elif len(ref1.components()) > len(ref2.components()):
-      return 1
-    else:
-      return (ref1.components() > ref2.components()) - (ref1.components() < ref2.components())
-
-  @staticmethod
   def from_address(address):
     components = []
-    if not address or not isinstance(address, basestring):
+    if not address or not isinstance(address, Types.stringy):
       raise Ref.InvalidRefError('Invalid address: %s' % repr(address))
     if not (address.startswith('[') or address.startswith('.')):
       if Ref._VALID_START.match(address[0]):
@@ -142,10 +134,10 @@ class Ref(object):
     if any(splits[0::2]):
       raise Ref.InvalidRefError('Badly formed address %s' % address)
     splits = splits[1::2]
-    return map(map_to_namable, splits)
+    return [map_to_namable(spl) for spl in splits]
 
   def address(self):
-    joined = ''.join(map(str, self._components))
+    joined = ''.join(str(comp) for comp in self._components)
     if joined.startswith('.'):
       return joined[1:]
     else:
@@ -159,6 +151,20 @@ class Ref(object):
 
   def __eq__(self, other):
     return self.components() == other.components()
+
+  def __lt__(self, other):
+    if len(self.components()) < len(other.components()):
+      return True
+    elif len(self.components()) > len(other.components()):
+      return False
+    return self.components() < other.components()
+
+  def __gt__(self, other):
+    if len(self.components()) > len(other.components()):
+      return True
+    elif len(self.components()) < len(other.components()):
+      return False
+    return self.components() > other.components()
 
   def __hash__(self):
     return hash(str(self))

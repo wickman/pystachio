@@ -77,11 +77,11 @@ def test_complex_lookup():
 def test_scope_lookup():
   refs = [ref('mesos.ports[health]'), ref('mesos.config'), ref('logrotate.filename'),
           ref('mesos.ports.http')]
-  scoped_refs = filter(None, map(ref('mesos.ports').scoped_to, refs))
+  scoped_refs = [m for m in map(ref('mesos.ports').scoped_to, refs) if m]
   assert scoped_refs == [ref('[health]'), ref('http')]
 
   refs = [ref('[a]'), ref('[a][b]'), ref('[a].b')]
-  scoped_refs = filter(None, map(ref('[a]').scoped_to, refs))
+  scoped_refs = [m for m in map(ref('[a]').scoped_to, refs) if m]
   assert scoped_refs == [ref('[b]'), ref('b')]
 
 def test_scope_override():

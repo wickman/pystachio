@@ -24,9 +24,8 @@ Notable related projects:
 
 ## Requirements ##
 
-Tested on CPython 2.6, 2.7 and PyPy 1.6.  Most likely won't work with
-CPythons pre-2.6.x.  Definitely won't work on CPython 3.2.x because of
-metaclass syntax issues, but that's probably a minor change.
+Tested and works in CPython 2.6, 2.7, 3.2 and PyPy 1.6.  Not tested
+pre-2.6.x and will almost certainly not work.
 
 ## Overview ##
 

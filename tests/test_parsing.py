@@ -28,7 +28,7 @@ def test_mustache_re():
   invalid_refs = ['!@', '-', '$', ':']
   for val in invalid_refs:
     with pytest.raises(Ref.InvalidRefError):
-      print MustacheParser.split("{{%s}}" % val)
+      MustacheParser.split("{{%s}}" % val)
 
 def test_mustache_splitting():
   assert MustacheParser.split("{{foo}}") == [ref("foo")]

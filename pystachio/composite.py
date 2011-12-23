@@ -98,8 +98,9 @@ class StructMetaclass(type):
     augmented_attributes = StructMetaclass.extract_typemap(attributes)
     return type.__new__(mcs, name, parents, augmented_attributes)
 
+Structy = StructMetaclass('Structy', (object,), {})
 
-class Struct(Object, Schema, Namable):
+class Struct(Structy, Object, Schema, Namable):
   """
     Schema-based composite objects, e.g.
 
@@ -120,8 +121,6 @@ class Struct(Object, Schema, Namable):
       >>> brian
       Employee(first=String(brian))
   """
-  __metaclass__ = StructMetaclass
-
   def __init__(self, *args, **kw):
     self._init_schema_data()
     for arg in args:

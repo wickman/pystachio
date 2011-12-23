@@ -1,5 +1,6 @@
 import copy
 
+from pystachio import Types
 from pystachio.base import Object, TypeCheck
 from pystachio.parsing import MustacheParser
 from pystachio.schema import Schemaless
@@ -36,6 +37,9 @@ class SimpleObject(Object):
     else:
       return 0
 
+  def __hash__(self):
+    return hash(self._value)
+
   def __eq__(self, other):
     return self._my_cmp(other) == 0
 
@@ -55,11 +59,15 @@ class SimpleObject(Object):
     si, _ = self.interpolate()
     return unicode(si._value)
 
+  def __str__(self):
+    si, _ = self.interpolate()
+    return str(si._value)
+
   def __repr__(self):
-    return '%s(%s)' % (self.__class__.__name__, unicode(self))
+    return '%s(%s)' % (self.__class__.__name__, str(self) if Types.PY3 else unicode(self))
 
   def interpolate(self):
-    if not isinstance(self._value, basestring):
+    if not isinstance(self._value, Types.stringy):
       return self.__class__(self.coerce(self._value)), []
     else:
       splits = MustacheParser.split(self._value)
@@ -81,17 +89,17 @@ class String(SimpleObject, Schemaless):
   def checker(cls, obj):
     if not isinstance(obj, String):
       return TypeCheck.failure("%s is not a subclass of String" % obj)
-    if isinstance(obj._value, basestring):
+    if isinstance(obj._value, Types.stringy):
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not a string" % repr(obj._value))
 
   @classmethod
   def coerce(cls, value):
-    ACCEPTED_SOURCE_TYPES = (int, float, basestring)
+    ACCEPTED_SOURCE_TYPES = Types.stringy + Types.numeric
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise SimpleObject.CoercionError(value, cls)
-    return unicode(value)
+    return str(value) if Types.PY3 else unicode(value)
 
   @classmethod
   def schema_name(cls):
@@ -103,14 +111,14 @@ class Integer(SimpleObject, Schemaless):
   def checker(cls, obj):
     if not isinstance(obj, Integer):
       return TypeCheck.failure("%s is not a subclass of Integer" % obj)
-    if isinstance(obj._value, (int, long)):
+    if isinstance(obj._value, Types.integer):
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not an integer" % repr(obj._value))
 
   @classmethod
   def coerce(cls, value):
-    ACCEPTED_SOURCE_TYPES = (int, float, basestring)
+    ACCEPTED_SOURCE_TYPES = Types.numeric + Types.stringy
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise SimpleObject.CoercionError(value, cls)
     try:
@@ -129,14 +137,14 @@ class Float(SimpleObject, Schemaless):
   def checker(cls, obj):
     if not isinstance(obj, Float):
       return TypeCheck.failure("%s is not a subclass of Float" % obj)
-    if isinstance(obj._value, float):
+    if isinstance(obj._value, Types.real + Types.integer):
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not a float" % repr(obj._value))
 
   @classmethod
   def coerce(cls, value):
-    ACCEPTED_SOURCE_TYPES = (int, float, basestring)
+    ACCEPTED_SOURCE_TYPES = Types.numeric + Types.stringy
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise SimpleObject.CoercionError(value, cls)
     try:
