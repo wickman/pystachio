@@ -30,6 +30,6 @@ EOF
     rm -rf $TARGET
   fi
   $bin .virtualenv.cache/virtualenv-1.7/virtualenv.py --distribute $TARGET
-  $TARGET/bin/pip install --download-cache=.virtualenv.cache pytest
+  $TARGET/bin/pip install --download-cache=.virtualenv.cache pytest pytest-cov
 done
 rm -f .target
