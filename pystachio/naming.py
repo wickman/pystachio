@@ -127,9 +127,6 @@ class Ref(object):
   def scoped_to(self, ref):
     return Ref.subscope(self, ref)
 
-  def scoped_in(self, ref):
-    return Ref.subscope(ref, self)
-
   @staticmethod
   def split_components(address):
     def map_to_namable(component):

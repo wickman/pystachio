@@ -1,4 +1,4 @@
-from collections import Iterable, Mapping
+from collections import Iterable, Mapping, Sequence
 import copy
 from inspect import isclass
 
@@ -58,7 +58,7 @@ class ListContainer(Namable, Object, Type):
 
   @staticmethod
   def isiterable(values):
-    return isinstance(values, Iterable) and not isinstance(values, Types.stringy)
+    return isinstance(values, Sequence) and not isinstance(values, Types.stringy)
 
   def _coerce_values(self, values):
     if not ListContainer.isiterable(values):
@@ -68,16 +68,12 @@ class ListContainer(Namable, Object, Type):
     return tuple([coerced(v) for v in values])
 
   def check(self):
-    if not ListContainer.isiterable(self._values):
-      return TypeCheck.failure("%s values are not iterable." % self.__class__.__name__)
+    assert ListContainer.isiterable(self._values)
     for element in self._values:
-      if not isinstance(element, self.TYPE):
-        return TypeCheck.failure("Element in %s not of type %s: %s" % (self.__class__.__name__,
-          self.TYPE.__name__, element))
-      else:
-        if not element.check().ok():
-          return TypeCheck.failure("Element in %s failed check: %s" % (self.__class__.__name__,
-            element.check().message()))
+      assert isinstance(element, self.TYPE)
+      if not element.in_scope(*self.scopes()).check().ok():
+        return TypeCheck.failure("Element in %s failed check: %s" % (self.__class__.__name__,
+          element.in_scope(*self.scopes()).check().message()))
     return TypeCheck.success()
 
   def interpolate(self):
@@ -95,7 +91,7 @@ class ListContainer(Namable, Object, Type):
     try:
       intvalue = int(ref.action().value)
     except ValueError:
-      raise Namable.NotFound(self, ref)
+      raise Namable.NamingError(self, ref)
     if len(self._values) <= intvalue:
       raise Namable.NotFound(self, ref)
     else:
@@ -195,21 +191,16 @@ class MapContainer(Namable, Object, Type):
     return si._map == oi._map
 
   def check(self):
-    if not isinstance(self._map, Mapping):
-      return TypeCheck.failure("%s map is not a mapping." % self.__class__.__name__)
-    for key, value in self._map.items():
-      if not isinstance(key, self.KEYTYPE):
-        return TypeCheck.failure("%s key %s is not of type %s" % (self.__class__.__name__,
-          key, self.KEYTYPE.__name__))
-      if not isinstance(value, self.VALUETYPE):
-        return TypeCheck.failure("%s value %s is not of type %s" % (self.__class__.__name__,
-          value, self.VALUETYPE.__name__))
-      if not key.check().ok():
+    assert isinstance(self._map, tuple)
+    for key, value in self._map:
+      assert isinstance(key, self.KEYTYPE)
+      assert isinstance(value, self.VALUETYPE)
+      if not key.in_scope(*self.scopes()).check().ok():
         return TypeCheck.failure("%s key %s failed check: %s" % (self.__class__.__name__,
-          key, key.check().message()))
-      if not value.check().ok():
+          key, key.in_scope(*self.scopes()).check().message()))
+      if not value.in_scope(*self.scopes()).check().ok():
         return TypeCheck.failure("%s[%s] value %s failed check: %s" % (self.__class__.__name__,
-          key, value, value.check().message()))
+          key, value, value.in_scope(*self.scopes()).check().message()))
     return TypeCheck.success()
 
   def interpolate(self):

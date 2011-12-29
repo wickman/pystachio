@@ -80,6 +80,13 @@ def test_recursive_unwrapping():
   new_employer = TypeFactory.new({}, *Employer.serialize_type())
   assert new_employer.serialize_type() == Employer.serialize_type()
   assert isinstance(new_employer(), Employer)
+  nontwttr = Employer()
+  assert not nontwttr.check().ok()
+  repr(nontwttr.check())
+  twttr = Employer(name = 'Twitter')
+  assert twttr.check().ok()
+  repr(twttr.check())
+
 
 
 def test_load():
@@ -103,3 +110,15 @@ def test_load():
   twttr = deposit['Employer'](name = 'Twitter')
   assert twttr.find(ref('employees[0].name')) == String('Bob')
   assert twttr.find(ref('employees[0].location')) == String('San Francisco')
+
+
+def test_unimplementeds():
+  # coverage-whore
+  with pytest.raises(NotImplementedError):
+    Type.type_factory()
+  with pytest.raises(NotImplementedError):
+    Type.type_parameters()
+  with pytest.raises(NotImplementedError):
+    Type().check()
+  with pytest.raises(NotImplementedError):
+    Type.serialize_type()

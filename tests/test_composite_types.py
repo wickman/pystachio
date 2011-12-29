@@ -45,7 +45,23 @@ def test_nested_composites():
   assert Process(resources = Resources(cpu = 1.0)).check().ok()
   assert Process(resources = Resources(cpu = 1)).check().ok()
   assert Process(name = 15)(resources = Resources(cpu = 1.0)).check().ok()
+  repr(Process(name = 15)(resources = Resources(cpu = 1.0)))
+  repr(Process.TYPEMAP)
 
+def test_typesig():
+  class Process1(Struct):
+    name = String
+  class Process2(Struct):
+    name = Required(String)
+  class Process3(Struct):
+    name = Default(String, "foo")
+  class Process4(Struct):
+    name = String
+  assert Process1.TYPEMAP['name'] == Process4.TYPEMAP['name']
+  assert Process1.TYPEMAP['name'] != Process2.TYPEMAP['name']
+  assert Process1.TYPEMAP['name'] != Process3.TYPEMAP['name']
+  assert Process2.TYPEMAP['name'] != Process3.TYPEMAP['name']
+  repr(Process1.TYPEMAP['name'])
 
 def test_defaults():
   class Resources(Struct):
