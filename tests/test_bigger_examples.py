@@ -43,7 +43,7 @@ def test_simple_task():
   assert bi.check().ok()
 
 def test_type_type_type():
-  assert Map(String,Integer) == Map(String,Integer)
+  assert Map(String,Integer) != Map(String,Integer), "Types are no longer memoized."
   assert isinstance(Map(String,Integer)({}), Map(String,Integer))
   assert isinstance(Map(Map(String,Integer),Integer)({}), Map(Map(String,Integer),Integer))
 

@@ -1,11 +1,12 @@
 import copy
 
 from pystachio import Types
-from pystachio.base import Object, TypeCheck
+from pystachio.base import Object
 from pystachio.parsing import MustacheParser
-from pystachio.schema import Schemaless
+from pystachio.typing import Type, TypeFactory, TypeCheck
 
-class SimpleObject(Object):
+
+class SimpleObject(Object, Type):
   """
     A simply-valued (unnamable) object.
   """
@@ -14,7 +15,7 @@ class SimpleObject(Object):
       Exception.__init__(self, "Cannot coerce '%s' to %s" % (src, dst.__name__))
 
   def __init__(self, value):
-    self._value = copy.deepcopy(value)
+    self._value = value
     Object.__init__(self)
 
   def get(self):
@@ -22,7 +23,7 @@ class SimpleObject(Object):
 
   def copy(self):
     new_self = self.__class__(self._value)
-    new_self._scopes = copy.deepcopy(self.scopes())
+    new_self._scopes = copy.copy(self.scopes())
     return new_self
 
   def _my_cmp(self, other):
@@ -83,8 +84,15 @@ class SimpleObject(Object):
           self_copy._value = joins
         return self_copy, unbound
 
+  @classmethod
+  def type_factory(cls):
+    return cls.__name__
 
-class String(SimpleObject, Schemaless):
+  @classmethod
+  def type_parameters(cls):
+    return ()
+
+class String(SimpleObject):
   @classmethod
   def checker(cls, obj):
     if not isinstance(obj, String):
@@ -101,12 +109,16 @@ class String(SimpleObject, Schemaless):
       raise SimpleObject.CoercionError(value, cls)
     return str(value) if Types.PY3 else unicode(value)
 
-  @classmethod
-  def schema_name(cls):
-    return 'String'
+
+class StringFactory(TypeFactory):
+  PROVIDES = 'String'
+  @staticmethod
+  def create(type_dict, *type_parameters):
+    return String
 
 
-class Integer(SimpleObject, Schemaless):
+
+class Integer(SimpleObject):
   @classmethod
   def checker(cls, obj):
     if not isinstance(obj, Integer):
@@ -126,13 +138,18 @@ class Integer(SimpleObject, Schemaless):
     except ValueError:
       raise SimpleObject.CoercionError(value, cls)
 
-  @classmethod
-  def schema_name(cls):
-    return 'Integer'
+
+class IntegerFactory(TypeFactory):
+  PROVIDES = 'Integer'
+  @staticmethod
+  def create(type_dict, *type_parameters):
+    return Integer
 
 
 
-class Float(SimpleObject, Schemaless):
+
+
+class Float(SimpleObject):
   @classmethod
   def checker(cls, obj):
     if not isinstance(obj, Float):
@@ -152,9 +169,8 @@ class Float(SimpleObject, Schemaless):
     except ValueError:
       raise SimpleObject.CoercionError(value, cls)
 
-  @classmethod
-  def schema_name(cls):
-    return 'Float'
-
-for typ in Integer, String, Float:
-  Schemaless.register_schema(typ)
+class FloatFactory(TypeFactory):
+  PROVIDES = 'Float'
+  @staticmethod
+  def create(type_dict, *type_parameters):
+    return Float

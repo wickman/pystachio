@@ -4,4 +4,6 @@
 build/*
 dist/*
 .virtualenv*
+.coverage
+htmlcov
 TODO

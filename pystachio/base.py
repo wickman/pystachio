@@ -5,6 +5,8 @@ from pystachio.naming import (
   Ref,
   Namable)
 
+
+
 class frozendict(dict):
   """A hashable dictionary."""
   def __key(self):
@@ -19,37 +21,6 @@ class frozendict(dict):
   def __repr__(self):
     return 'frozendict(%s)' % dict.__repr__(self)
 
-
-class TypeCheck(object):
-  """
-    Encapsulate the results of a type check pass.
-  """
-  class Error(Exception):
-    pass
-
-  @staticmethod
-  def success():
-    return TypeCheck(True, "")
-
-  @staticmethod
-  def failure(msg):
-    return TypeCheck(False, msg)
-
-  def __init__(self, success, message):
-    self._success = success
-    self._message = message
-
-  def message(self):
-    return self._message
-
-  def ok(self):
-    return self._success
-
-  def __repr__(self):
-    if self.ok():
-      return 'TypeCheck(OK)'
-    else:
-      return 'TypeCheck(FAILED): %s' % self._message
 
 
 class Environment(Namable):
@@ -117,6 +88,7 @@ class Environment(Namable):
 
   def __repr__(self):
     return 'Environment(%s)' % pformat(self._table)
+
 
 class Object(object):
   """

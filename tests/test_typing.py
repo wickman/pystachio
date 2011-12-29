@@ -1,16 +1,18 @@
+import pytest
 from pystachio import *
-from pystachio.schema import Schema
 
 def test_basic_schemas():
   BASIC_TYPES = (Integer, Float, String)
 
   for typ in BASIC_TYPES:
-    assert Schema.deserialize_schema(typ.serialize_schema()) == typ
-    assert Schema.deserialize_schema(List(typ).serialize_schema()) == List(typ)
+    assert TypeFactory.new({}, *typ.serialize_type()) == typ
+
+  for typ in BASIC_TYPES:
+    assert isinstance(TypeFactory.new({}, *List(typ).serialize_type())([]), List(typ))
 
   for typ1 in BASIC_TYPES:
     for typ2 in BASIC_TYPES:
-      assert Schema.deserialize_schema(Map(typ1, typ2).serialize_schema()) == Map(typ1, typ2)
+      assert isinstance(TypeFactory.new({}, *Map(typ1, typ2).serialize_type())({}), Map(typ1, typ2))
 
 def test_complex_schemas():
   BASIC_TYPES = (Integer, Float, String)
@@ -23,8 +25,7 @@ def test_complex_schemas():
     for mt2 in (BASIC_TYPES, LIST_TYPES, MAP_TYPES):
       for typ1 in mt1:
         for typ2 in mt2:
-          assert Schema.deserialize_schema(Map(typ1, typ2).serialize_schema()) == Map(typ1, typ2)
-          assert Schema.deserialize_schema(Map(typ2, typ1).serialize_schema()) == Map(typ2, typ1)
+          assert isinstance(TypeFactory.new({}, *Map(typ1, typ2).serialize_type())({}), Map(typ1, typ2))
 
 def test_composite_schemas_are_not_lossy():
   class C1(Struct):
@@ -55,13 +56,13 @@ def test_composite_schemas_are_not_lossy():
   for mt1 in BASIC_TYPES + LIST_TYPES + MAP_TYPES:
     for mt2 in BASIC_TYPES + LIST_TYPES + MAP_TYPES:
       t = Map(mt1, mt2)
-      ser = t.serialize_schema()
-      serdes = Schema.deserialize_schema(ser)
-      serdesser = serdes.serialize_schema()
+      ser = t.serialize_type()
+      serdes = TypeFactory.new({}, *ser)
+      serdesser = serdes.serialize_type()
       assert ser == serdesser, 'Multiple ser/der cycles should not affect types.'
       default = Map(typ1, typ2)({})
       assert Map(typ1, typ2)(default.get()) == default, (
-        'Unwrapping/rewrapping should leave values intact')
+        'Unwrapping/rewrapping should leave values intact: %s vs %s' % (typ1, typ2))
 
 def test_recursive_unwrapping():
   class Employee(Struct):
@@ -73,15 +74,6 @@ def test_recursive_unwrapping():
     name = Required(String)
     employees = Default(List(Employee), [Employee(name = 'Bob')])
 
-  new_employer = Schema.deserialize_schema(Employer.serialize_schema())
-
-  # For various reasons, we need to compare the repr(TYPEMAP) instead of the
-  # TYPEMAP, mainly because types produced by pystachio are scoped within
-  # the pystachio module:
-  #
-  # Employer.TYPEMAP != new_employer.TYPEMAP b/c
-  #   Employer.Employee = <class 'pystachio.composite.Employee'>
-  #   new_employer.Employee = <class 'test_schemas.Employee'>
-
-  assert repr(Employer.TYPEMAP) == repr(new_employer.TYPEMAP)
-  assert Employer.serialize_schema() == new_employer.serialize_schema()
+  new_employer = TypeFactory.new({}, *Employer.serialize_type())
+  assert new_employer.serialize_type() == Employer.serialize_type()
+  assert isinstance(new_employer(), Employer)

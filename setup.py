@@ -5,13 +5,13 @@ version = '0.1.0'
 
 class PyTest(Command):
   user_options = []
-  
+
   def initialize_options(self):
     pass
-  
+
   def finalize_options(self):
     pass
-  
+
   def run(self):
     import sys, subprocess
     try:

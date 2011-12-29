@@ -2,9 +2,9 @@ from collections import Mapping
 import copy
 from inspect import isclass
 
-from pystachio.base import TypeCheck, Object, frozendict
-from pystachio.schema import Schema
+from pystachio.base import Object, frozendict
 from pystachio.naming import Namable
+from pystachio.typing import TypeFactory, TypeCheck, Type, TypeMetaclass
 
 class Empty(object):
   """The Empty sentinel representing an unspecified field."""
@@ -25,8 +25,23 @@ class TypeSignature(object):
     self._cls = cls
     self._required = required
 
+  def serialize(self):
+    return (self.required,
+            self.default.get() if not self.empty else (),
+            self.empty,
+            self.klazz.serialize_type())
+
+  @staticmethod
+  def deserialize(sig, type_dict):
+    req, default, empty, klazz_schema = sig
+    real_class = TypeFactory.new(type_dict, *klazz_schema)
+    if not empty:
+      return TypeSignature(real_class, default=real_class(default), required=req)
+    else:
+      return TypeSignature(real_class, required=req)
+
   def __eq__(self, other):
-    return (self.klazz == other.klazz and
+    return (self.klazz.serialize_type() == other.klazz.serialize_type() and
             self.required == other.required and
             self.default == other.default and
             self.empty == other.empty)
@@ -55,7 +70,7 @@ class TypeSignature(object):
     return self._default is Empty
 
   @staticmethod
-  def parse(sig):
+  def wrap(sig):
     if isclass(sig) and issubclass(sig, Object):
       return TypeSignature(sig)
     elif isinstance(sig, TypeSignature):
@@ -78,56 +93,66 @@ def Default(cls, default):
   return TypeSignature(cls, required=False, default=default)
 
 
+
+
+class StructFactory(TypeFactory):
+  PROVIDES = 'Struct'
+
+  @staticmethod
+  def create(type_dict, *type_parameters):
+    """
+      StructFactory.create(*type_parameters) expects:
+
+        class name,
+        (attribute_name1, attribute_sig1 (serialized)),
+        (attribute_name2, attribute_sig2 ...),
+        ...
+        (attribute_nameN, ...)
+    """
+    for param in type_parameters[1:]:
+      assert isinstance(param, tuple)
+    typename = type_parameters[0]
+    typemap = dict((attr, TypeSignature.deserialize(param, type_dict))
+                   for attr, param in type_parameters[1:])
+    attributes = {'TYPEMAP': typemap}
+    return TypeMetaclass(typename, (Structural,), attributes)
+
+
+
 class StructMetaclass(type):
   """
     Schema-extracting metaclass for Struct objects.
   """
-
   @staticmethod
-  def extract_typemap(attributes):
-    typemap = {}
+  def attributes_to_parameters(attributes):
+    parameters = []
     for attr_name, attr_value in attributes.items():
-      sig = TypeSignature.parse(attr_value)
-      if sig: typemap[attr_name] = sig
-    for extracted_attribute in typemap:
-      attributes.pop(extracted_attribute)
-    attributes['TYPEMAP'] = typemap
-    return attributes
+      sig = TypeSignature.wrap(attr_value)
+      if sig:
+        parameters.append((attr_name, sig.serialize()))
+    return parameters
 
   def __new__(mcs, name, parents, attributes):
-    augmented_attributes = StructMetaclass.extract_typemap(attributes)
-    return type.__new__(mcs, name, parents, augmented_attributes)
+    if any(parent.__name__ == 'Struct' for parent in parents):
+      type_parameters = StructMetaclass.attributes_to_parameters(attributes)
+      type_parameters = (name,) + tuple(type_parameters)
+      return TypeFactory.new({}, 'Struct', *type_parameters)
+    else:
+      return type.__new__(mcs, name, parents, attributes)
 
-Structy = StructMetaclass('Structy', (object,), {})
 
-class Struct(Structy, Object, Schema, Namable):
-  """
-    Schema-based composite objects, e.g.
+StructMetaclassWrapper = StructMetaclass('StructMetaclassWrapper', (object,), {})
 
-      class Employee(Struct):
-        first = Required(String)
-        last  = Required(String)
-        email = Required(String)
-        phone = String
+class Structural(Object, Type, Namable):
+  """A Structural base type for composite objects."""
 
-      Employee(first = "brian", last = "wickman", email = "wickman@twitter.com").check()
-
-    They're purely functional data structures and behave more like functors.
-    In other words they're immutable:
-
-      >>> brian = Employee(first = "brian")
-      >>> brian(last = "wickman")
-      Employee(last=String(wickman), first=String(brian))
-      >>> brian
-      Employee(first=String(brian))
-  """
   def __init__(self, *args, **kw):
     self._init_schema_data()
     for arg in args:
       if not isinstance(arg, Mapping):
-        raise ValueError('Expected dictionary argument')
+        raise ValueError('Expected dictionary argument, got %s' % repr(arg))
       self._update_schema_data(**arg)
-    self._update_schema_data(**copy.deepcopy(kw))
+    self._update_schema_data(**copy.copy(kw))
     Object.__init__(self)
 
   def get(self):
@@ -158,16 +183,16 @@ class Struct(Structy, Object, Schema, Namable):
 
   def copy(self):
     new_object = self.__class__(**self._schema_data)
-    new_object._scopes = copy.deepcopy(self.scopes())
+    new_object._scopes = copy.copy(self.scopes())
     return new_object
 
   def __call__(self, **kw):
     new_self = self.copy()
-    new_self._update_schema_data(**copy.deepcopy(kw))
+    new_self._update_schema_data(**copy.copy(kw))
     return new_self
 
   def __eq__(self, other):
-    if not isinstance(other, Struct): return False
+    if not isinstance(other, Structural): return False
     if self.TYPEMAP != other.TYPEMAP: return False
     si = self.interpolate()
     oi = other.interpolate()
@@ -206,34 +231,13 @@ class Struct(Structy, Object, Schema, Namable):
     return self.__class__(**interpolated_schema_data), list(unbound)
 
   @classmethod
-  def schema_name(cls):
+  def type_factory(cls):
     return 'Struct'
 
   @classmethod
-  def serialize_schema(cls):
-    schemadict = {
-      '__name__': cls.__name__,
-      '__typemap__': {}
-    }
-    typemap = schemadict['__typemap__']
-    for name, sig in cls.TYPEMAP.items():
-      typemap[name] = (sig.required,
-        sig.default.get() if not sig.empty else {},
-        sig.empty, sig.klazz.serialize_schema())
-    return (cls.schema_name(), schemadict)
-
-  @staticmethod
-  def deserialize_schema(schema):
-    schema_name, schema_parameters = schema
-    typemap = {}
-    for name, sig in schema_parameters['__typemap__'].items():
-      req, default, empty, klazz_schema = sig
-      real_class = Schema.deserialize_schema(klazz_schema)
-      if not empty:
-        typemap[name] = TypeSignature(real_class, default=real_class(default), required=req)
-      else:
-        typemap[name] = TypeSignature(real_class, required=req)
-    return StructMetaclass(schema_parameters['__name__'], (Struct,), typemap)
+  def type_parameters(cls):
+    return (cls.__name__,) + tuple(
+      sorted([(attr, sig.serialize()) for attr, sig in cls.TYPEMAP.items()]))
 
   def find(self, ref):
     if not ref.is_dereference():
@@ -251,4 +255,26 @@ class Struct(Structy, Object, Schema, Namable):
         else:
           return namable.in_scope(*self.scopes()).find(ref.rest())
 
-Schema.register_schema(Struct)
+
+class Struct(StructMetaclassWrapper, Structural):
+  """
+    Schema-based composite objects, e.g.
+
+      class Employee(Struct):
+        first = Required(String)
+        last  = Required(String)
+        email = Required(String)
+        phone = String
+
+      Employee(first = "brian", last = "wickman", email = "wickman@twitter.com").check()
+
+    They're purely functional data structures and behave more like functors.
+    In other words they're immutable:
+
+      >>> brian = Employee(first = "brian")
+      >>> brian(last = "wickman")
+      Employee(last=String(wickman), first=String(brian))
+      >>> brian
+      Employee(first=String(brian))
+  """
+  pass

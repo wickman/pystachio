@@ -4,7 +4,7 @@
 # Run setup.sh <python binary 1> <python binary 2> ... <python binary N> to set up
 # virtual environments for running tests.  For example:
 #
-# ./setup.sh python2.7 python3.2 pypy
+# ./setup.sh python2.6 python2.7 python3.2 pypy-1.6
 #
 
 MY_DIR=$(dirname $0)
@@ -30,6 +30,6 @@ EOF
     rm -rf $TARGET
   fi
   $bin .virtualenv.cache/virtualenv-1.7/virtualenv.py --distribute $TARGET
-  $TARGET/bin/pip install --download-cache=.virtualenv.cache pytest pytest-cov
+  $TARGET/bin/pip install --download-cache=.virtualenv.cache pytest pytest-cov pytest-xdist
 done
 rm -f .target

@@ -5,6 +5,11 @@ __license__ = 'MIT'
 from sys import version_info
 from numbers import (Real, Integral)
 
+from pystachio.typing import (
+  Type,
+  TypeCheck,
+  TypeFactory)
+
 class Types(object):
   """2.x + 3.x compatibility"""
   stringy = (str,)
