@@ -1,6 +1,6 @@
 import pytest
-from pystachio.base import Environment
-from pystachio.naming import Ref
+from pystachio.base import Object, Environment, frozendict
+from pystachio.naming import Ref, Namable
 from pystachio.basic import Integer
 from pystachio.container import List
 
@@ -9,6 +9,7 @@ def dtd(d):
 
 def ref(address):
   return Ref.from_address(address)
+
 
 def test_environment_constructors():
   oe = Environment(a = 1, b = 2)
@@ -29,6 +30,16 @@ def test_environment_constructors():
   oe = Environment(oe, a = 3)
   assert oe._table == dtd({'a': 3, 'b': 1})
 
+  bad_values = [None, 3, 'a', type, ()]
+  for value in bad_values:
+    with pytest.raises(ValueError):
+      Environment(value)
+  bad_values = [None, type, ()]
+  for value in bad_values:
+    with pytest.raises(ValueError):
+      Environment(foo = value)
+
+
 def test_environment_find():
   oe1 = Environment(a = { 'b': 1 })
   oe2 = Environment(a = { 'b': { 'c': List(Integer)([1,2,3]) } } )
@@ -37,6 +48,14 @@ def test_environment_find():
   assert oe.find(ref('a.b.c[0]')) == Integer(1)
   assert oe.find(ref('a.b.c[1]')) == Integer(2)
   assert oe.find(ref('a.b.c[2]')) == Integer(3)
+
+  missing_refs = [ref('b'), ref('b.c'), ref('a.c'), ref('a.b.c[3]')]
+  for r in missing_refs:
+    with pytest.raises(Namable.NotFound):
+      oe.find(r)
+
+  oe = Environment(a = { 'b': { 'c': 5 } } )
+  assert oe.find(ref('a.b.c')) == '5'
 
 def test_environment_merge():
   oe1 = Environment(a = 1)
@@ -79,3 +98,22 @@ def test_environment_bad_values():
   for val in bad_values:
     with pytest.raises(ValueError):
       Environment(a = val)
+
+
+def test_reprs():
+  fd = frozendict(a = 1, b = 2)
+  assert repr(fd) == "frozendict({'a': 1, 'b': 2})"
+  env = Environment(fd)
+  repr(env)
+
+
+def test_object_unimplementeds():
+  o = Object()
+  with pytest.raises(NotImplementedError):
+    Object.checker(o)
+  with pytest.raises(NotImplementedError):
+    o.get()
+  with pytest.raises(NotImplementedError):
+    oc = o.copy()
+  with pytest.raises(NotImplementedError):
+    oi = o.interpolate()

@@ -79,13 +79,6 @@ class TypeFactory(TypeFactoryClass):
     return type_dict[type_tuple]
 
   @staticmethod
-  def wrap(type_info):
-    if isinstance(type_info, Type):
-      return type_info.serialize_type()
-    else:
-      raise ValueError("Expected a fully reified type: %s" % type_info)
-
-  @staticmethod
   def wrapper(factory):
     assert issubclass(factory, TypeFactory)
     def wrapper_function(*type_parameters):

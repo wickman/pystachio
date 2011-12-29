@@ -1,6 +1,9 @@
 import pytest
 from pystachio import *
 
+def ref(address):
+  return Ref.from_address(address)
+
 def test_basic_schemas():
   BASIC_TYPES = (Integer, Float, String)
 
@@ -77,3 +80,26 @@ def test_recursive_unwrapping():
   new_employer = TypeFactory.new({}, *Employer.serialize_type())
   assert new_employer.serialize_type() == Employer.serialize_type()
   assert isinstance(new_employer(), Employer)
+
+
+def test_load():
+  class Employee(Struct):
+    name = Required(String)
+    location = Default(String, "San Francisco")
+    age = Integer
+
+  class Employer(Struct):
+    name = Required(String)
+    employees = Default(List(Employee), [Employee(name = 'Bob')])
+
+  employer_type = Employer.serialize_type()
+  # It would be swell if I could 'del Employee' here.
+
+  deposit = {}
+  TypeFactory.load(employer_type, into=deposit)
+  assert 'Employee' in deposit
+  assert 'Employer' in deposit
+
+  twttr = deposit['Employer'](name = 'Twitter')
+  assert twttr.find(ref('employees[0].name')) == String('Bob')
+  assert twttr.find(ref('employees[0].location')) == String('San Francisco')

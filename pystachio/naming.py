@@ -7,16 +7,20 @@ class Namable(object):
     An object that can be named/dereferenced.
   """
   class Error(Exception): pass
+
   class Unnamable(Error):
     def __init__(self, obj):
       Namable.Error.__init__(self, 'Object is not indexable: %s' % obj.__class__.__name__)
+
   class NamingError(Error):
     def __init__(self, obj, ref):
       Namable.Error.__init__(self, 'Cannot dereference object %s by %s' % (obj.__class__.__name__,
         ref.action()))
+
   class NotFound(Error):
     def __init__(self, obj, ref):
-      Namable.Error.__init__(self, 'Could not find %s in object %s' % (ref.action().value, obj.__class__.__name__))
+      Namable.Error.__init__(self, 'Could not find %s in object %s' % (ref.action().value,
+        obj.__class__.__name__))
 
   def find(self, ref):
     """
@@ -45,6 +49,12 @@ class Ref(object):
 
     def __eq__(self, other):
       return self.__class__ == other.__class__ and self.value == other.value
+
+    def __lt__(self, other):
+      return self.value < other.value
+
+    def __gt__(self, other):
+      return self.value > other.value
 
   class Index(Component):
     RE = re.compile('^\w+$')
@@ -152,19 +162,20 @@ class Ref(object):
   def __eq__(self, other):
     return self.components() == other.components()
 
-  def __lt__(self, other):
+  @staticmethod
+  def compare(self, other):
     if len(self.components()) < len(other.components()):
-      return True
+      return -1
     elif len(self.components()) > len(other.components()):
-      return False
-    return self.components() < other.components()
+      return 1
+    else:
+      return (self.components() > other.components()) - (self.components() < other.components())
+
+  def __lt__(self, other):
+    return Ref.compare(self, other) == -1
 
   def __gt__(self, other):
-    if len(self.components()) > len(other.components()):
-      return True
-    elif len(self.components()) < len(other.components()):
-      return False
-    return self.components() > other.components()
+    return Ref.compare(self, other) == 1
 
   def __hash__(self):
     return hash(str(self))

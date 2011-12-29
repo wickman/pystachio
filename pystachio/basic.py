@@ -77,11 +77,7 @@ class SimpleObject(Object, Type):
         return self.__class__(joins), unbound
       else:
         self_copy = self.copy()
-        # TODO(wickman) Are these actually the correct semantics?
-        if hasattr(self_copy, 'coerce') and callable(self_copy.coerce):
-          self_copy._value = self_copy.coerce(joins)
-        else:
-          self_copy._value = joins
+        self_copy._value = self_copy.coerce(joins)
         return self_copy, unbound
 
   @classmethod
@@ -95,11 +91,13 @@ class SimpleObject(Object, Type):
 class String(SimpleObject):
   @classmethod
   def checker(cls, obj):
-    if not isinstance(obj, String):
-      return TypeCheck.failure("%s is not a subclass of String" % obj)
+    assert isinstance(obj, String)
     if isinstance(obj._value, Types.stringy):
       return TypeCheck.success()
     else:
+      # TODO(wickman)  Perhaps we should mark uninterpolated Mustache objects as
+      # intrinsically non-stringy, because String will never typecheck false given
+      # its input constraints.
       return TypeCheck.failure("%s not a string" % repr(obj._value))
 
   @classmethod
@@ -121,8 +119,7 @@ class StringFactory(TypeFactory):
 class Integer(SimpleObject):
   @classmethod
   def checker(cls, obj):
-    if not isinstance(obj, Integer):
-      return TypeCheck.failure("%s is not a subclass of Integer" % obj)
+    assert isinstance(obj, Integer)
     if isinstance(obj._value, Types.integer):
       return TypeCheck.success()
     else:
@@ -152,8 +149,7 @@ class IntegerFactory(TypeFactory):
 class Float(SimpleObject):
   @classmethod
   def checker(cls, obj):
-    if not isinstance(obj, Float):
-      return TypeCheck.failure("%s is not a subclass of Float" % obj)
+    assert isinstance(obj, Float)
     if isinstance(obj._value, Types.real + Types.integer):
       return TypeCheck.success()
     else:

@@ -158,11 +158,6 @@ class Structural(Object, Type, Namable):
   def get(self):
     return frozendict((k, v.get()) for k, v in self._schema_data.items() if v is not Empty)
 
-  def _schema_check(self, kw):
-    for attr in kw:
-      if attr not in self.TYPEMAP:
-        raise AttributeError('Unknown schema attribute %s' % attr)
-
   def _init_schema_data(self):
     self._schema_data = {}
     for attr in self.TYPEMAP:

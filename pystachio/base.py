@@ -76,15 +76,14 @@ class Environment(Namable):
         if not isinstance(scope, Namable):
           continue
         subscope = Ref.subscope(key, ref)
-        if subscope.is_empty():
-          return scope
-        else:
-          try:
-            resolved = scope.find(subscope)
-            return resolved
-          except Namable.Error as e:
-            continue
-    raise KeyError(ref)
+        # If subscope is empty, then we should've found it in the ref table.
+        assert not subscope.is_empty()
+        try:
+          resolved = scope.find(subscope)
+          return resolved
+        except Namable.Error as e:
+          continue
+    raise Namable.NotFound(self, ref)
 
   def __repr__(self):
     return 'Environment(%s)' % pformat(self._table)
