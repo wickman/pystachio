@@ -1,5 +1,5 @@
 __author__ = 'Brian Wickman'
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 __license__ = 'MIT'
 
 from sys import version_info
