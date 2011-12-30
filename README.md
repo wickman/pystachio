@@ -502,7 +502,7 @@ number, so San Jose or San Francisco, his number remains the same:
                                         PhoneBookEntry(name=Brian, number=4025551234)))
 
 
-## Magic ##
+## Dictionary type-checking ##
 
 Because of how `Struct` based schemas are created, the constructor of
 such a schema behaves like a deserialization mechanism from a straight
@@ -550,8 +550,7 @@ And instantiate it as a Task (indentation provided for clarity):
 
 
 The schema that we defined as a Python class structure is applied
-recursively to the dictionary.  In fact, we can even type check the
-dictionary:
+to the dictionary.  We can use this schema to type-check the dictionary:
 
     >>> tsk.check()
     TypeCheck(FAILED): Task[processes] failed: Element in ProcessList failed check: Process[name] is required.
@@ -559,6 +558,140 @@ dictionary:
 It turns out that we forgot to specify the name of the `Process` in our
 process list, and it was a `Required` field.  If we update the dictionary to
 specify 'name', it will type check successfully.
+
+
+## Type construction ##
+
+
+It is possible to serialize constructed types, pickle them and send them
+around with your dictionary data in order to do portable type checking.
+
+### Serialization ###
+
+
+Every type in Pystachio has a `serialize_type` method which is used to
+describe the type in a portable way.  The basic types are uninteresting:
+
+    >>> String.serialize_type()
+    ('String',)
+    >>> Integer.serialize_type()
+    ('Integer',)
+    >>> Float.serialize_type()
+    ('Float',)
+
+The notation is simply: `String` types are produced by the `"String"` type
+factory.  They are not parameterized types so they need no additional type
+parameters.  However, Lists and Maps are parameterized:
+
+    >>> List(String).serialize_type()
+    ('List', ('String',))
+    >>> Map(Integer,String).serialize_type()
+    ('Map', ('Integer',), ('String',))
+    >>> Map(Integer,List(String)).serialize_type()
+    ('Map', ('Integer',), ('List', ('String',)))
+
+Furthermore, composite types created with `Struct` are also serializable.
+Take the composite types defined in the previous section: `Task`, `Process` and `Resources`.
+
+    >>> from pprint import pprint
+    >>> pprint(Resources.serialize_type(), indent=2, width=100)
+    ( 'Struct',
+      'Resources',
+      ('cpu', (True, (), True, ('Float',))),
+      ('disk', (False, 2147483648, False, ('Integer',))),
+      ('ram', (True, (), True, ('Integer',))))
+
+In other words, the `Struct` factory is producing a type with a set of type
+parameters: `Resources` is the name of the struct, `cpu`, `disk` and `ram`
+are attributes of the type.
+
+If you serialize `Task`, it recursively serializes its children types:
+
+    >>> pprint(Task.serialize_type(), indent=2, width=100)
+    ( 'Struct',
+      'Task',
+      ('max_failures', (False, 1, False, ('Integer',))),
+      ('name', (True, (), True, ('String',))),
+      ( 'processes',
+        ( True,
+          (),
+          True,
+          ( 'List',
+            ( 'Struct',
+              'Process',
+              ('cmdline', (False, (), True, ('String',))),
+              ('max_failures', (False, 1, False, ('Integer',))),
+              ('name', (True, (), True, ('String',))),
+              ( 'resources',
+                ( True,
+                  (),
+                  True,
+                  ( 'Struct',
+                    'Resources',
+                    ('cpu', (True, (), True, ('Float',))),
+                    ('disk', (False, 2147483648, False, ('Integer',))),
+                    ('ram', (True, (), True, ('Integer',)))))))))))
+
+
+### Deserialization ###
+
+Given a type tuple produced by serialize_type, you can then use
+`TypeFactory.load` from `pystachio.typing` to load a type into an interpreter.  For example:
+
+    >>> pprint(TypeFactory.load(Resources.serialize_type()))
+    {'Float': <class 'pystachio.basic.Float'>,
+     'Integer': <class 'pystachio.basic.Integer'>,
+     'Resources': <class 'pystachio.typing.Resources'>}
+
+`TypeFactory.load` returns a map from type name to the fully reified type for all types required to
+describe the serialized type, including children.  In the example of `Task` above:
+
+    >>> pprint(TypeFactory.load(Task.serialize_type()))
+    {'Float': <class 'pystachio.basic.Float'>,
+     'Integer': <class 'pystachio.basic.Integer'>,
+     'Process': <class 'pystachio.typing.Process'>,
+     'ProcessList': <class 'pystachio.typing.ProcessList'>,
+     'Resources': <class 'pystachio.typing.Resources'>,
+     'String': <class 'pystachio.basic.String'>,
+     'Task': <class 'pystachio.typing.Task'>}
+
+`TypeFactory.load` also takes an `into` keyword argument, so you can do
+`TypeFactory.load(type, into=globals())` in order to deposit them into your interpreter:
+
+    >>> from pystachio import *
+    >>> TypeFactory.load(( 'Struct',
+    ...   'Task',
+    ...   ('max_failures', (False, 1, False, ('Integer',))),
+    ...   ('name', (True, (), True, ('String',))),
+    ...   ( 'processes',
+    ...     ( True,
+    ...       (),
+    ...       True,
+    ...       ( 'List',
+    ...         ( 'Struct',
+    ...           'Process',
+    ...           ('cmdline', (False, (), True, ('String',))),
+    ...           ('max_failures', (False, 1, False, ('Integer',))),
+    ...           ('name', (True, (), True, ('String',))),
+    ...           ( 'resources',
+    ...             ( True,
+    ...               (),
+    ...               True,
+    ...               ( 'Struct',
+    ...                 'Resources',
+    ...                 ('cpu', (True, (), True, ('Float',))),
+    ...                 ('disk', (False, 2147483648, False, ('Integer',))),
+    ...                 ('ram', (True, (), True, ('Integer',))))))))))), into=globals())
+    >>> Task
+    <class 'pystachio.typing.Task'>
+    >>> Process
+    <class 'pystachio.typing.Process'>
+    >>> Task().check()
+    TypeCheck(FAILED): Task[processes] is required.
+    >>> Resources().check()
+    TypeCheck(FAILED): Resources[ram] is required.
+    >>> Resources(cpu = 1.0, ram = 1024, disk = 1024).check()
+    TypeCheck(OK)
 
 
 ## Author ##
