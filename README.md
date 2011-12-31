@@ -694,6 +694,23 @@ describe the serialized type, including children.  In the example of `Task` abov
     TypeCheck(OK)
 
 
+## Equivalence ##
+
+Types produced by `TypeFactory.load` are reified types but they are not
+identical to each other.  This could be provided in the future via type
+memoization but that would require keeping some amount of state around.
+
+Instead, `__instancecheck__` has been provided, so that you can do
+`isinstance` checks:
+
+    >>> Task
+    <class 'pystachio.typing.Task'>
+    >>> Task == TypeFactory.new({}, *Task.serialize_type())
+    False
+    >>> isinstance(Task(), TypeFactory.new({}, *Task.serialize_type()))
+    True
+
+
 ## Author ##
 
 @wickman (Brian Wickman)
