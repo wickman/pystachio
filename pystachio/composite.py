@@ -200,6 +200,20 @@ class Structural(Object, Type, Namable):
       ', '.join('%s=%s' % (key, val) for key, val in si._schema_data.items() if val is not Empty)
     )
 
+  def __getattr__(self, attr):
+    if not hasattr(self, 'TYPEMAP'):
+      raise AttributeError
+
+    if attr.startswith('has_'):
+      if attr[4:] in self.TYPEMAP:
+        return lambda: self._schema_data[attr[4:]] != Empty
+
+    if attr not in self.TYPEMAP:
+      raise AttributeError("%s has no attribute %s" % (self.__class__.__name__, attr))
+
+    si, _ = self.interpolate()
+    return lambda: si._schema_data[attr]
+
   def check(self):
     for name, signature in self.TYPEMAP.items():
       if self._schema_data[name] is Empty and signature.required:
@@ -231,8 +245,11 @@ class Structural(Object, Type, Namable):
 
   @classmethod
   def type_parameters(cls):
-    return (cls.__name__,) + tuple(
-      sorted([(attr, sig.serialize()) for attr, sig in cls.TYPEMAP.items()]))
+    if not hasattr(cls, 'TYPEMAP'):
+      return (cls.__name__,)
+    else:
+      return (cls.__name__,) + tuple(
+        sorted([(attr, sig.serialize()) for attr, sig in cls.TYPEMAP.items()]))
 
   def find(self, ref):
     if not ref.is_dereference():

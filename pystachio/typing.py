@@ -104,6 +104,10 @@ class TypeMetaclass(type):
   def __instancecheck__(cls, other):
     if not hasattr(other, 'type_parameters'):
       return False
+    if not hasattr(other, '__class__'):
+      return False
+    if cls.__name__ != other.__class__.__name__:
+      return False
     return cls.type_factory() == other.type_factory() and (
       cls.type_parameters() == other.type_parameters())
 

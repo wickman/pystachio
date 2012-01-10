@@ -49,6 +49,14 @@ class ListContainer(Namable, Object, Type):
     return '%s(%s)' % (self.__class__.__name__,
       ', '.join(str(v) if Types.PY3 else unicode(v) for v in si._values))
 
+  def __iter__(self):
+    si, _ = self.interpolate()
+    return iter(si._values)
+
+  def __getitem__(self, index_or_slice):
+    si, _ = self.interpolate()
+    return si._values[index_or_slice]
+
   def __eq__(self, other):
     if not isinstance(other, ListContainer): return False
     if self.TYPE.serialize_type() != other.TYPE.serialize_type(): return False
@@ -171,6 +179,23 @@ class MapContainer(Namable, Object, Type):
 
   def __hash__(self):
     return hash(self.get())
+
+  def __iter__(self):
+    si, _ = self.interpolate()
+    return (t[0] for t in si._map)
+
+  def __getitem__(self, key):
+    if not isinstance(key, self.KEYTYPE):
+      try:
+        key = self.KEYTYPE(key)
+      except ValueError:
+        raise TypeError("Could not coerce key %s to %s" % (repr(key), self.KEYTYPE.__name__))
+    # TODO(wickman) This should be improved.
+    si, _ = self.interpolate()
+    for tup in si._map:
+      if key == tup[0]:
+        return tup[1]
+    raise KeyError("%s not found" % key)
 
   def copy(self):
     new_self = self.__class__(*self._map)

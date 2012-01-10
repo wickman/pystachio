@@ -10,9 +10,9 @@ class SimpleObject(Object, Type):
   """
     A simply-valued (unnamable) object.
   """
-  class CoercionError(Exception):
+  class CoercionError(ValueError):
     def __init__(self, src, dst):
-      Exception.__init__(self, "Cannot coerce '%s' to %s" % (src, dst.__name__))
+      ValueError.__init__(self, "Cannot coerce '%s' to %s" % (src, dst.__name__))
 
   def __init__(self, value):
     self._value = value

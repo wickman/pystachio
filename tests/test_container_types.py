@@ -34,6 +34,34 @@ def test_basic_scoping():
   assert lst.in_scope(intvalue = 3).find(two) == Integer(2)
   assert lst.in_scope(intvalue = 3).find(three) == Integer(3)
 
+def test_iteration():
+  li = List(Integer)([1,2,3])
+  liter = iter(li)
+  assert next(liter) == Integer(1)
+  assert next(liter) == Integer(2)
+  assert next(liter) == Integer(3)
+  with pytest.raises(StopIteration):
+    next(liter)
+  li = List(Integer)([])
+  with pytest.raises(StopIteration):
+    next(iter(li))
+
+def test_indexing():
+  li = List(Integer)([1,2,3])
+  for bad in ['a', None, type, Integer]:
+    with pytest.raises(TypeError):
+      li[bad]
+
+  # Indexing should also support slices
+  li = List(Integer)(range(10))
+  assert li[0] == Integer(0)
+  assert li[-1] == Integer(9)
+  assert li[::2] == (Integer(0), Integer(2), Integer(4), Integer(6), Integer(8))
+  assert li[8:] == (Integer(8), Integer(9))
+  assert li[2:0:-1] == (Integer(2), Integer(1))
+  with pytest.raises(IndexError):
+    li[10]
+
 def test_list_scoping():
   assert List(Integer)([1, "{{wut}}"]).interpolate() == (
     List(Integer)([Integer(1), Integer('{{wut}}')]), [ref('wut')])
@@ -41,7 +69,6 @@ def test_list_scoping():
     List(Integer)([Integer(1), Integer(23)]), [])
   assert List(Integer)([1, Integer("{{wut}}").bind(wut = 24)]).bind(wut = 23).interpolate() == (
     List(Integer)([Integer(1), Integer(24)]), [])
-
 
 def test_list_find():
   ls = List(String)(['a', 'b', 'c'])
@@ -88,6 +115,33 @@ def test_map_find():
   mii = Map(Integer,String)({3: 'foo', '5': 'bar'})
   assert mii.find(ref('[3]')) == String('foo')
   assert mii.find(ref('[5]')) == String('bar')
+
+def test_map_iteration():
+  mi = Map(String,Integer)({'a': 1, 'b': 2})
+  miter = iter(mi)
+  assert next(miter) == String('a')
+  assert next(miter) == String('b')
+  with pytest.raises(StopIteration):
+    next(miter)
+
+  mi = Map(String,Integer)({})
+  with pytest.raises(StopIteration):
+    next(iter(mi))
+
+def test_map_indexing():
+  mi = Map(String,Integer)({'a': 1, 'b': 2})
+  assert mi['a'] == Integer(1)
+  assert mi[String('b')] == Integer(2)
+  for key in ['c', String('c')]:
+    with pytest.raises(KeyError):
+      mi[key]
+
+@pytest.mark.xfail(reason="Need to improve pre-coercion for basic types.")
+def test_bad_map_indexing():
+  mi = Map(String,Integer)({'a': 1, 'b': 2})
+  for key in [String, Integer, Integer(1), 1, None, type]:
+    with pytest.raises(TypeError):
+      mi[key]
 
 def test_hashing():
   map = {

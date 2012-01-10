@@ -136,3 +136,44 @@ def test_find():
   assert proc.find(ref('resources[res1].disks[0]')) == String('hda3')
   assert proc.find(ref('resources[res2].disks[0]')) == String('hda3')
   assert proc.find(ref('resources[res2].disks[1]')) == String('hdb3')
+
+
+def test_getattr_functions():
+  class Resources(Struct):
+    cpu = Required(Float)
+    ram = Integer
+    disk = Integer
+
+  class Process(Struct):
+    name = Required(String)
+    resources = Map(String, Resources)
+
+  # Basic getattr + hasattr
+  assert Process(name = "hello").name() == String('hello')
+  assert Process().has_name() is False
+  assert Process(name = "hello").has_name() is True
+
+
+  p = Process(name = "hello")
+  p1 = p(resources = {'foo': Resources()})
+  p2 = p(resources = {'{{whee}}': Resources()}).bind(whee='foo')
+
+  assert p1.has_resources()
+  assert p2.has_resources()
+  assert String('foo') in p1.resources()
+  assert String('foo') in p2.resources()
+
+
+def test_getattr_bad_cases():
+  # Technically speaking if we had
+  # class Tricky(Struct):
+  #    stuff = Integer
+  #    has_stuff = Integer
+  # would be ~= undefined.
+
+  class Tricky(Struct):
+    has_stuff = Integer
+  t = Tricky()
+  assert t.has_has_stuff() is False
+  assert t.has_stuff() is Empty
+

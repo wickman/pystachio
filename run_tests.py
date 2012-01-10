@@ -28,7 +28,7 @@ def main(args):
     py_test = os.path.join(virtualenvs[1], 'bin', 'py.test')
     tx_targets = [['--tx', 'popen//python=%s' % os.path.join(ve, 'bin', 'python')]
                   for ve in virtualenvs]
-    return ([py_test, '--dist=load'] +
+    return ([py_test, '--dist=each'] +
             list(chain(*tx_targets)) +
             ['--cov=pystachio', '--cov-report=term-missing', '--cov-report=html'])
 

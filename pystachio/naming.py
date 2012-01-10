@@ -31,6 +31,7 @@ class Namable(object):
     """
     raise NotImplementedError
 
+
 class Ref(object):
   """
     A reference into to a hierarchically named object.
