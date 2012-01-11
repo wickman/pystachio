@@ -1,6 +1,8 @@
 import re
 from itertools import chain
-from pystachio import Types
+
+from pystachio.compatibility import Compatibility
+
 
 class Namable(object):
   """
@@ -28,6 +30,13 @@ class Namable(object):
       Raises Namable.NotFound if not found.
       Raises Namable.NamingError if try to dereference object in an invalid way.
       Raises Namable.Unnamable if try to dereference into an unnamable type.
+    """
+    raise NotImplementedError
+
+  @classmethod
+  def provides(cls, ref):
+    """
+      Given a ref, determine whether or not this class could dereference it.
     """
     raise NotImplementedError
 
@@ -80,7 +89,7 @@ class Ref(object):
   @staticmethod
   def from_address(address):
     components = []
-    if not address or not isinstance(address, Types.stringy):
+    if not address or not isinstance(address, Compatibility.stringy):
       raise Ref.InvalidRefError('Invalid address: %s' % repr(address))
     if not (address.startswith('[') or address.startswith('.')):
       if Ref._VALID_START.match(address[0]):

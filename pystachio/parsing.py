@@ -1,6 +1,6 @@
 import re
 
-from pystachio import Types
+from pystachio.compatibility import Compatibility
 from pystachio.naming import Namable, Ref
 
 class MustacheParser(object):
@@ -71,4 +71,4 @@ class MustacheParser(object):
             raise MustacheParser.Uninterpolatable(ref.address())
       else:
         isplits.append(ref)
-    return (''.join(map(str if Types.PY3 else unicode, isplits)), unbound)
+    return (''.join(map(str if Compatibility.PY3 else unicode, isplits)), unbound)

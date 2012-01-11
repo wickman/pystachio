@@ -2,6 +2,7 @@ import pytest
 from pystachio.naming import Ref, Namable
 from pystachio.basic import *
 from pystachio.container import List, Map
+from pystachio.composite import Struct
 
 def ref(address):
   return Ref.from_address(address)
@@ -82,6 +83,20 @@ def test_list_find():
   with pytest.raises(Namable.Unnamable):
     ls.find(ref('[1].foo'))
 
+def test_list_provides():
+  assert List(String).provides(ref('[0]'))
+  assert not List(String).provides(ref('[0].unprovided'))
+  class Employee(Struct):
+    first = String
+    last = String
+  assert List(Employee).provides(ref('[0].first'))
+  assert not List(Employee).provides(ref('[0].unknown_field'))
+  assert List(Map(String,String)).provides(ref('[0]'))
+  assert List(Map(String,String)).provides(ref('[0][foo]'))
+  assert not List(Map(String,String)).provides(ref('[0].foo'))
+  # TODO(wickman) Do basic coercion checks so that
+  # assert not List(String).provides(ref('[invalid]'))
+
 def test_equals():
   assert List(Integer)([1, "{{wut}}"]).bind(wut=23) == List(Integer)([1, 23])
 
@@ -115,6 +130,18 @@ def test_map_find():
   mii = Map(Integer,String)({3: 'foo', '5': 'bar'})
   assert mii.find(ref('[3]')) == String('foo')
   assert mii.find(ref('[5]')) == String('bar')
+
+def test_map_provides():
+  assert Map(String, Integer).provides(ref('[foo]'))
+  assert not Map(String, Integer).provides(ref('[0].unprovided'))
+  class Employee(Struct):
+    first = String
+    last = String
+  assert Map(Integer,Employee).provides(ref('[0].first'))
+  assert not Map(Integer,Employee).provides(ref('[0].unknown_field'))
+  assert Map(String,List(String)).provides(ref('[0]'))
+  assert Map(String,List(String)).provides(ref('[bar][foo]'))
+  assert not Map(String,List(String)).provides(ref('[0].foo'))
 
 def test_map_iteration():
   mi = Map(String,Integer)({'a': 1, 'b': 2})

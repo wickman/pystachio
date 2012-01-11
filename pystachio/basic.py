@@ -1,7 +1,7 @@
 import copy
 
-from pystachio import Types
 from pystachio.base import Object
+from pystachio.compatibility import Compatibility
 from pystachio.parsing import MustacheParser
 from pystachio.typing import Type, TypeFactory, TypeCheck
 
@@ -65,10 +65,10 @@ class SimpleObject(Object, Type):
     return str(si._value)
 
   def __repr__(self):
-    return '%s(%s)' % (self.__class__.__name__, str(self) if Types.PY3 else unicode(self))
+    return '%s(%s)' % (self.__class__.__name__, str(self) if Compatibility.PY3 else unicode(self))
 
   def interpolate(self):
-    if not isinstance(self._value, Types.stringy):
+    if not isinstance(self._value, Compatibility.stringy):
       return self.__class__(self.coerce(self._value)), []
     else:
       splits = MustacheParser.split(self._value)
@@ -92,7 +92,7 @@ class String(SimpleObject):
   @classmethod
   def checker(cls, obj):
     assert isinstance(obj, String)
-    if isinstance(obj._value, Types.stringy):
+    if isinstance(obj._value, Compatibility.stringy):
       return TypeCheck.success()
     else:
       # TODO(wickman)  Perhaps we should mark uninterpolated Mustache objects as
@@ -102,10 +102,10 @@ class String(SimpleObject):
 
   @classmethod
   def coerce(cls, value):
-    ACCEPTED_SOURCE_TYPES = Types.stringy + Types.numeric
+    ACCEPTED_SOURCE_TYPES = Compatibility.stringy + Compatibility.numeric
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise SimpleObject.CoercionError(value, cls)
-    return str(value) if Types.PY3 else unicode(value)
+    return str(value) if Compatibility.PY3 else unicode(value)
 
 
 class StringFactory(TypeFactory):
@@ -120,14 +120,14 @@ class Integer(SimpleObject):
   @classmethod
   def checker(cls, obj):
     assert isinstance(obj, Integer)
-    if isinstance(obj._value, Types.integer):
+    if isinstance(obj._value, Compatibility.integer):
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not an integer" % repr(obj._value))
 
   @classmethod
   def coerce(cls, value):
-    ACCEPTED_SOURCE_TYPES = Types.numeric + Types.stringy
+    ACCEPTED_SOURCE_TYPES = Compatibility.numeric + Compatibility.stringy
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise SimpleObject.CoercionError(value, cls)
     try:
@@ -150,14 +150,14 @@ class Float(SimpleObject):
   @classmethod
   def checker(cls, obj):
     assert isinstance(obj, Float)
-    if isinstance(obj._value, Types.real + Types.integer):
+    if isinstance(obj._value, Compatibility.real + Compatibility.integer):
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not a float" % repr(obj._value))
 
   @classmethod
   def coerce(cls, value):
-    ACCEPTED_SOURCE_TYPES = Types.numeric + Types.stringy
+    ACCEPTED_SOURCE_TYPES = Compatibility.numeric + Compatibility.stringy
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise SimpleObject.CoercionError(value, cls)
     try:

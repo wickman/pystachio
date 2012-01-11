@@ -11,6 +11,7 @@ from pystachio.composite import *
 def ref(address):
   return Ref.from_address(address)
 
+
 def test_ref_parsing():
   for input in ['', None, type, 1, 3.0, 'hork bork']:
     with pytest.raises(Ref.InvalidRefError):
@@ -51,6 +52,7 @@ def test_ref_lookup():
   oe.find(ref('[0][a]')) == Integer(27)
   Environment(foo = oe).find(ref('foo[0][a]')) == Integer(27)
 
+
 def test_complex_lookup():
   class Employee(Struct):
     first = String
@@ -74,6 +76,7 @@ def test_complex_lookup():
   assert List(Employer)([twttr]).find(ref('[0].employees[0].last')) == String('wickman')
   assert List(Employer)([twttr]).find(ref('[0].employees[2].last')) == String('{{default.last}}')
 
+
 def test_scope_lookup():
   refs = [ref('mesos.ports[health]'), ref('mesos.config'), ref('logrotate.filename'),
           ref('mesos.ports.http')]
@@ -84,6 +87,7 @@ def test_scope_lookup():
   scoped_refs = [m for m in map(ref('[a]').scoped_to, refs) if m]
   assert scoped_refs == [ref('[b]'), ref('b')]
 
+
 def test_scope_override():
   class MesosConfig(Struct):
     ports = Map(String, Integer)
@@ -91,6 +95,7 @@ def test_scope_override():
   env = Environment({ref('config.ports[http]'): 5000}, config = config)
   assert env.find(ref('config.ports[http]')) == '5000'
   assert env.find(ref('config.ports[health]')) == Integer(8888)
+
 
 def test_inherited_scope():
   class PhoneBookEntry(Struct):
@@ -122,3 +127,4 @@ def test_deepcopy_preserves_bindings():
   briancopy = deepcopy(brian)
   assert brian.find(ref('number')) == Integer(4025551234)
   assert briancopy.find(ref('number')) == Integer(4025551234)
+

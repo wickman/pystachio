@@ -1,6 +1,8 @@
 import functools
 from inspect import isclass
 
+from pystachio.naming import Ref, Namable
+
 class TypeCheck(object):
   """
     Encapsulate the results of a type check pass.
@@ -114,6 +116,7 @@ class TypeMetaclass(type):
   def __new__(mcls, name, parents, attributes):
     return type.__new__(mcls, name, parents, attributes)
 
+
 class Type(object):
   @classmethod
   def type_factory(cls):
@@ -129,9 +132,64 @@ class Type(object):
   def serialize_type(cls):
     return (cls.type_factory(),) + cls.type_parameters()
 
-  def check(self):
+  def check(self, provided=None):
     """
       Returns a TypeCheck object explaining whether or not a particular
       instance of this object typechecks.
+
+      Optional:
+       :provided (TypeEnvironment) = The TypeEnvironment in which we should presume
+       interpolation will ultimately occur.
     """
     raise NotImplementedError
+
+
+class TypeEnvironment(object):
+  @staticmethod
+  def deserialize(klazz_bindings, type_dict):
+    unbound_types = []
+    bound_types = {}
+
+    for binding in klazz_bindings:
+      if len(binding) == 1:
+        unbound_types.append(TypeFactory.new(type_dict, *binding[0]))
+      elif len(binding) == 2:
+        bound_types[binding[1]] = TypeFactory.new(type_dict, *binding[0])
+      else:
+        raise ValueError('Expected 1- or 2-tuple to TypeEnvironment.deserialize')
+
+    return TypeEnvironment(*unbound_types, **bound_types)
+
+  def __init__(self, *types, **bound_types):
+    for typ in types + tuple(bound_types.values()):
+      if not isclass(typ) or not issubclass(typ, Namable):
+        raise TypeError('Type annotations must be subtypes of Namable, got %s instead!' % repr(typ))
+    self._unbound_types = types
+    self._bound_types = bound_types
+
+  def merge(self, other):
+    self_serialized = self.serialize()
+    other_serialized = other.serialize()
+    combined = set(self_serialized + other_serialized)
+    return TypeEnvironment.deserialize(tuple(combined), {})
+
+  def serialize(self):
+    serialized_bindings = []
+    for typ in self._unbound_types:
+      serialized_bindings.append((typ.serialize_type(),))
+    for (name, typ) in self._bound_types.items():
+      serialized_bindings.append((typ.serialize_type(), name))
+    return tuple(serialized_bindings)
+
+  def covers(self, ref):
+    """
+      Does this TypeEnvironment cover the ref?
+    """
+    for binding in self._unbound_types:
+      if binding.provides(ref):
+        return True
+    for bound_name, binding in self._bound_types.items():
+      scoped_ref = Ref.from_address(bound_name).scoped_to(ref)
+      if binding.provides(scoped_ref):
+        return True
+    return False

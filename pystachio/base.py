@@ -1,6 +1,9 @@
 from pprint import pformat
 
-from pystachio import Types
+from pystachio.compatibility import Compatibility
+from pystachio.typing import (
+  TypeCheck,
+  TypeEnvironment)
 from pystachio.naming import (
   Ref,
   Namable)
@@ -35,7 +38,7 @@ class Environment(Namable):
     elif isinstance(value, (Environment, Object)):
       return value
     else:
-      if isinstance(value, Types.numeric + Types.stringy):
+      if isinstance(value, Compatibility.numeric + Compatibility.stringy):
         return str(value)
       else:
         raise ValueError('Error in Environment.wrap(%s)' % repr(value))
@@ -63,6 +66,28 @@ class Environment(Namable):
         self._assimilate_table(d)
       else:
         raise ValueError("Environment expects dict or Environment, got %s" % repr(d))
+
+  # Duck-typed against provides classmethod.
+  #
+  # TODO(wickman) provides should probably somehow be integrated with find in this case.
+  def provides(self, ref):
+    assert isinstance(ref, Ref)
+    if ref in self._table:
+      return True
+    targets = [key for key in self._table if Ref.subscope(key, ref)]
+    if not targets:
+      return False
+    else:
+      for key in sorted(targets, reverse=True):
+        scope = self._table[key]
+        if not isinstance(scope, Namable):
+          continue
+        subscope = Ref.subscope(key, ref)
+        # If subscope is empty, then we should've found it in the ref table.
+        assert not subscope.is_empty()
+        if scope.provides(subscope):
+          return True
+    return False
 
   def find(self, ref):
     if ref in self._table:
@@ -145,11 +170,16 @@ class Object(object):
   def scopes(self):
     return self._scopes
 
-  def check(self):
+  def check(self, provided=None):
     """
       Type check this object.
     """
-    si, _ = self.interpolate()
+    si, uninterp = self.interpolate()
+    type_environment = provided if provided is not None else TypeEnvironment()
+    for ref in uninterp:
+      if not type_environment.covers(ref):
+        return TypeCheck(False, "Uninterpolated variables: %s" %
+          ' '.join('%s' % ref for ref in uninterp))
     return self.checker(si)
 
   def __ne__(self, other):

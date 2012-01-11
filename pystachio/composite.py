@@ -3,8 +3,13 @@ import copy
 from inspect import isclass
 
 from pystachio.base import Object, frozendict
-from pystachio.naming import Namable
-from pystachio.typing import TypeFactory, TypeCheck, Type, TypeMetaclass
+from pystachio.naming import Ref, Namable
+from pystachio.typing import (
+  Type,
+  TypeCheck,
+  TypeEnvironment,
+  TypeFactory,
+  TypeMetaclass)
 
 class Empty(object):
   """The Empty sentinel representing an unspecified field."""
@@ -93,6 +98,34 @@ def Default(cls, default):
   return TypeSignature(cls, required=False, default=default)
 
 
+def Provided(*types, **bound_types):
+  """
+    Specify the requirement that this Struct is only interpolated within the context
+    of certain other Structs.
+
+    e.g.
+
+    class JobEnvironment(Struct):
+      user  = String
+      group = String
+      ram   = Integer
+
+    @Provided(job = JobEnvironment)
+    class Job(Struct):
+      name    = String
+      command = Default(String, 'echo {{job.user}} from {{job.group}}!')
+  """
+  def annotator(klazz):
+    assert issubclass(klazz, Structural)
+    klazz_factory, klazz_name, klazz_bindings, klazz_attributes = klazz.serialize_type()
+
+    old_type_environment = TypeEnvironment.deserialize(klazz_bindings, {})
+    new_type_environment = TypeEnvironment(*types, **bound_types)
+    return TypeFactory.new({}, 'Struct',
+      klazz_name,
+      new_type_environment.merge(old_type_environment).serialize(),
+      klazz_attributes)
+  return annotator
 
 
 class StructFactory(TypeFactory):
@@ -104,19 +137,22 @@ class StructFactory(TypeFactory):
       StructFactory.create(*type_parameters) expects:
 
         class name,
-        (attribute_name1, attribute_sig1 (serialized)),
-        (attribute_name2, attribute_sig2 ...),
-        ...
-        (attribute_nameN, ...)
+        ((binding requirement1,),
+          (binding requirement2, bound_to_scope),
+           ...),
+        ((attribute_name1, attribute_sig1 (serialized)),
+         (attribute_name2, attribute_sig2 ...),
+         ...
+         (attribute_nameN, ...))
     """
-    for param in type_parameters[1:]:
+    name, bindings, parameters = type_parameters
+    for param in parameters:
       assert isinstance(param, tuple)
-    typename = type_parameters[0]
     typemap = dict((attr, TypeSignature.deserialize(param, type_dict))
-                   for attr, param in type_parameters[1:])
-    attributes = {'TYPEMAP': typemap}
-    return TypeMetaclass(typename, (Structural,), attributes)
-
+                   for attr, param in parameters)
+    bindings = TypeEnvironment.deserialize(bindings, type_dict)
+    attributes = {'TYPEMAP': typemap, 'REQUIRES': bindings}
+    return TypeMetaclass(name, (Structural,), attributes)
 
 
 class StructMetaclass(type):
@@ -130,13 +166,12 @@ class StructMetaclass(type):
       sig = TypeSignature.wrap(attr_value)
       if sig:
         parameters.append((attr_name, sig.serialize()))
-    return parameters
+    return tuple(parameters)
 
   def __new__(mcs, name, parents, attributes):
     if any(parent.__name__ == 'Struct' for parent in parents):
       type_parameters = StructMetaclass.attributes_to_parameters(attributes)
-      type_parameters = (name,) + tuple(type_parameters)
-      return TypeFactory.new({}, 'Struct', *type_parameters)
+      return TypeFactory.new({}, 'Struct', name, (), type_parameters)
     else:
       return type.__new__(mcs, name, parents, attributes)
 
@@ -214,12 +249,14 @@ class Structural(Object, Type, Namable):
     si, _ = self.interpolate()
     return lambda: si._schema_data[attr]
 
-  def check(self):
+  def check(self, provided=None):
+    type_environment = self.REQUIRES if provided is None else self.REQUIRES.merge(provided)
     for name, signature in self.TYPEMAP.items():
       if self._schema_data[name] is Empty and signature.required:
         return TypeCheck.failure('%s[%s] is required.' % (self.__class__.__name__, name))
       elif self._schema_data[name] is not Empty:
-        type_check = self._schema_data[name].check()
+        type_check = (self._schema_data[name].in_scope(*self.scopes())
+                                             .check(provided=type_environment))
         if type_check.ok():
           continue
         else:
@@ -245,11 +282,24 @@ class Structural(Object, Type, Namable):
 
   @classmethod
   def type_parameters(cls):
-    if not hasattr(cls, 'TYPEMAP'):
-      return (cls.__name__,)
-    else:
-      return (cls.__name__,) + tuple(
-        sorted([(attr, sig.serialize()) for attr, sig in cls.TYPEMAP.items()]))
+    attrs = []
+    if hasattr(cls, 'TYPEMAP'):
+      attrs = sorted([(attr, sig.serialize()) for attr, sig in cls.TYPEMAP.items()])
+    bindings = cls.REQUIRES.serialize()
+    return (cls.__name__, bindings, tuple(attrs))
+
+  @classmethod
+  def provides(cls, ref):
+    assert isinstance(ref, Ref)
+    if isinstance(ref.action(), Ref.Dereference):
+      if ref.action().value in cls.TYPEMAP:
+        if ref.rest().is_empty():
+          return True
+        else:
+          klazz = cls.TYPEMAP[ref.action().value].klazz
+          if issubclass(klazz, Namable):
+            return cls.TYPEMAP[ref.action().value].klazz.provides(ref.rest())
+    return False
 
   def find(self, ref):
     if not ref.is_dereference():

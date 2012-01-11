@@ -2,10 +2,15 @@ from collections import Iterable, Mapping, Sequence
 import copy
 from inspect import isclass
 
-from pystachio import Types
 from pystachio.base import Object, frozendict
-from pystachio.naming import Namable
-from pystachio.typing import TypeFactory, Type, TypeCheck, TypeMetaclass
+from pystachio.compatibility import Compatibility
+from pystachio.naming import Namable, Ref
+from pystachio.typing import (
+  Type,
+  TypeCheck,
+  TypeEnvironment,
+  TypeFactory,
+  TypeMetaclass)
 
 class ListFactory(TypeFactory):
   PROVIDES = 'List'
@@ -47,7 +52,7 @@ class ListContainer(Namable, Object, Type):
   def __repr__(self):
     si, _ = self.interpolate()
     return '%s(%s)' % (self.__class__.__name__,
-      ', '.join(str(v) if Types.PY3 else unicode(v) for v in si._values))
+      ', '.join(str(v) if Compatibility.PY3 else unicode(v) for v in si._values))
 
   def __iter__(self):
     si, _ = self.interpolate()
@@ -66,7 +71,7 @@ class ListContainer(Namable, Object, Type):
 
   @staticmethod
   def isiterable(values):
-    return isinstance(values, Sequence) and not isinstance(values, Types.stringy)
+    return isinstance(values, Sequence) and not isinstance(values, Compatibility.stringy)
 
   def _coerce_values(self, values):
     if not ListContainer.isiterable(values):
@@ -75,13 +80,14 @@ class ListContainer(Namable, Object, Type):
       return value if isinstance(value, self.TYPE) else self.TYPE(value)
     return tuple([coerced(v) for v in values])
 
-  def check(self):
+  def check(self, provided=None):
     assert ListContainer.isiterable(self._values)
     for element in self._values:
       assert isinstance(element, self.TYPE)
-      if not element.in_scope(*self.scopes()).check().ok():
+      typecheck = element.in_scope(*self.scopes()).check(provided=provided)
+      if not typecheck.ok():
         return TypeCheck.failure("Element in %s failed check: %s" % (self.__class__.__name__,
-          element.in_scope(*self.scopes()).check().message()))
+          typecheck.message()))
     return TypeCheck.success()
 
   def interpolate(self):
@@ -92,6 +98,17 @@ class ListContainer(Namable, Object, Type):
       interpolated.append(einterp)
       unbound.update(eunbound)
     return self.__class__(interpolated), list(unbound)
+
+  @classmethod
+  def provides(cls, ref):
+    assert isinstance(ref, Ref)
+    if isinstance(ref.action(), ref.Index):
+      if ref.rest().is_empty():
+        return True
+      else:
+        if issubclass(cls.TYPE, Namable):
+          return cls.TYPE.provides(ref.rest())
+    return False
 
   def find(self, ref):
     if not ref.is_index():
@@ -215,17 +232,19 @@ class MapContainer(Namable, Object, Type):
     oi, _ = other.interpolate()
     return si._map == oi._map
 
-  def check(self):
+  def check(self, provided=None):
     assert isinstance(self._map, tuple)
     for key, value in self._map:
       assert isinstance(key, self.KEYTYPE)
       assert isinstance(value, self.VALUETYPE)
-      if not key.in_scope(*self.scopes()).check().ok():
+      keycheck = key.in_scope(*self.scopes()).check(provided=provided)
+      valuecheck = value.in_scope(*self.scopes()).check(provided=provided)
+      if not keycheck.ok():
         return TypeCheck.failure("%s key %s failed check: %s" % (self.__class__.__name__,
-          key, key.in_scope(*self.scopes()).check().message()))
-      if not value.in_scope(*self.scopes()).check().ok():
+          key, keycheck.message()))
+      if not valuecheck.ok():
         return TypeCheck.failure("%s[%s] value %s failed check: %s" % (self.__class__.__name__,
-          key, value, value.in_scope(*self.scopes()).check().message()))
+          key, value, valuecheck.message()))
     return TypeCheck.success()
 
   def interpolate(self):
@@ -238,6 +257,18 @@ class MapContainer(Namable, Object, Type):
       unbound.update(vunbound)
       interpolated.append((kinterp, vinterp))
     return self.__class__(*interpolated), list(unbound)
+
+  @classmethod
+  def provides(cls, ref):
+    # TODO(wickman)  Should we be typechecking the ref.action().value?
+    assert isinstance(ref, Ref)
+    if isinstance(ref.action(), ref.Index):
+      if ref.rest().is_empty():
+        return True
+      else:
+        if issubclass(cls.VALUETYPE, Namable):
+          return cls.VALUETYPE.provides(ref.rest())
+    return False
 
   def find(self, ref):
     if not ref.is_index():
