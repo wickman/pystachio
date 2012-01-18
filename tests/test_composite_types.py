@@ -4,8 +4,6 @@ from pystachio.composite import *
 from pystachio.container import Map, List
 from pystachio.naming import Ref
 
-# TODO(wickman)  Do more .find(...) stress testing.
-
 def ref(address):
   return Ref.from_address(address)
 

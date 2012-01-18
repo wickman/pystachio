@@ -1,5 +1,5 @@
 __author__ = 'Brian Wickman'
-__version__ = '0.3.0'
+__version__ = '0.4.0'
 __license__ = 'MIT'
 
 from pystachio.typing import (
@@ -21,7 +21,8 @@ from pystachio.container import (
   Map)
 
 from pystachio.composite import (
+  Default,
   Empty,
-  Struct,
+  Provided,
   Required,
-  Default)
+  Struct)
