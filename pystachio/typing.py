@@ -190,6 +190,6 @@ class TypeEnvironment(object):
         return True
     for bound_name, binding in self._bound_types.items():
       scoped_ref = Ref.from_address(bound_name).scoped_to(ref)
-      if binding.provides(scoped_ref):
+      if scoped_ref is not None and binding.provides(scoped_ref):
         return True
     return False

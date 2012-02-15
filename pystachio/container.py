@@ -62,6 +62,13 @@ class ListContainer(Namable, Object, Type):
     si, _ = self.interpolate()
     return si._values[index_or_slice]
 
+  def __contains__(self, item):
+    si, _ = self.interpolate()
+    if isinstance(item, self.TYPE):
+      return item in si._values
+    else:
+      return item in si.get()
+
   def __eq__(self, other):
     if not isinstance(other, ListContainer): return False
     if self.TYPE.serialize_type() != other.TYPE.serialize_type(): return False
@@ -206,13 +213,20 @@ class MapContainer(Namable, Object, Type):
       try:
         key = self.KEYTYPE(key)
       except ValueError:
-        raise TypeError("Could not coerce key %s to %s" % (repr(key), self.KEYTYPE.__name__))
-    # TODO(wickman) This should be improved.
+        raise KeyError("%s is not coercable to %s" % self.KEYTYPE.__name__)
+    # TODO(wickman) The performance of this should be improved.
     si, _ = self.interpolate()
     for tup in si._map:
       if key == tup[0]:
         return tup[1]
     raise KeyError("%s not found" % key)
+
+  def __contains__(self, item):
+    try:
+      self[item]
+      return True
+    except KeyError:
+      return False
 
   def copy(self):
     new_self = self.__class__(*self._map)

@@ -155,20 +155,26 @@ def test_map_iteration():
   with pytest.raises(StopIteration):
     next(iter(mi))
 
-def test_map_indexing():
+def test_map_idioms():
   mi = Map(String,Integer)({'a': 1, 'b': 2})
-  assert mi['a'] == Integer(1)
-  assert mi[String('b')] == Integer(2)
-  for key in ['c', String('c')]:
+  for key in ['a', String('a')]:
+    assert mi[key] == Integer(1)
+    assert key in mi
+  for key in ['b', String('b')]:
+    assert mi[key] == Integer(2)
+    assert key in mi
+  for key in [1, 'c', String('c')]:
     with pytest.raises(KeyError):
       mi[key]
+    assert key not in mi
 
-@pytest.mark.xfail(reason="Need to improve pre-coercion for basic types.")
-def test_bad_map_indexing():
-  mi = Map(String,Integer)({'a': 1, 'b': 2})
-  for key in [String, Integer, Integer(1), 1, None, type]:
-    with pytest.raises(TypeError):
+@pytest.mark.xfail(reason="Pre-coercion checks need to be improved.")
+def test_map_keys_that_should_improve():
+  mi = Map(String, Integer)()
+  for key in [{2: "hello"}, String, Integer, type]:
+    with pytest.raises(KeyError):
       mi[key]
+    assert key not in mi
 
 def test_hashing():
   map = {
