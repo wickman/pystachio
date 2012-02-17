@@ -214,6 +214,7 @@ class Structural(Object, Type, Namable):
   def copy(self):
     new_object = self.__class__(**self._schema_data)
     new_object._scopes = copy.copy(self.scopes())
+    new_object._modulo = copy.copy(self.modulo())
     return new_object
 
   def __call__(self, **kw):
@@ -249,20 +250,23 @@ class Structural(Object, Type, Namable):
     si, _ = self.interpolate()
     return lambda: si._schema_data[attr]
 
-  def check(self, provided=None):
-    type_environment = self.REQUIRES if provided is None else self.REQUIRES.merge(provided)
+  def check(self):
     for name, signature in self.TYPEMAP.items():
       if self._schema_data[name] is Empty and signature.required:
         return TypeCheck.failure('%s[%s] is required.' % (self.__class__.__name__, name))
       elif self._schema_data[name] is not Empty:
         type_check = (self._schema_data[name].in_scope(*self.scopes())
-                                             .check(provided=type_environment))
+                                             .provided(self.modulo())
+                                             .check())
         if type_check.ok():
           continue
         else:
           return TypeCheck.failure('%s[%s] failed: %s' % (self.__class__.__name__, name,
             type_check.message()))
     return TypeCheck.success()
+
+  def modulo(self):
+    return super(Structural, self).modulo().merge(self.REQUIRES)
 
   def interpolate(self):
     unbound = set()
@@ -271,7 +275,7 @@ class Structural(Object, Type, Namable):
       if value is Empty:
         interpolated_schema_data[key] = Empty
       else:
-        vinterp, vunbound = value.in_scope(*self.scopes()).interpolate()
+        vinterp, vunbound = value.in_scope(*self.scopes()).provided(self.modulo()).interpolate()
         unbound.update(vunbound)
         interpolated_schema_data[key] = vinterp
     return self.__class__(**interpolated_schema_data), list(unbound)

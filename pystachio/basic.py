@@ -24,6 +24,7 @@ class SimpleObject(Object, Type):
   def copy(self):
     new_self = self.__class__(self._value)
     new_self._scopes = copy.copy(self.scopes())
+    new_self._modulo = copy.copy(self.modulo())
     return new_self
 
   def _my_cmp(self, other):
@@ -74,7 +75,7 @@ class SimpleObject(Object, Type):
       splits = MustacheParser.split(self._value)
       joins, unbound = MustacheParser.join(splits, *self.scopes(), strict=False)
       if unbound:
-        return self.__class__(joins), unbound
+        return self.__class__(joins), [ref for ref in unbound if not self.modulo().covers(ref)]
       else:
         self_copy = self.copy()
         self_copy._value = self_copy.coerce(joins)

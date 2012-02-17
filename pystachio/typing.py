@@ -132,14 +132,10 @@ class Type(object):
   def serialize_type(cls):
     return (cls.type_factory(),) + cls.type_parameters()
 
-  def check(self, provided=None):
+  def check(self):
     """
       Returns a TypeCheck object explaining whether or not a particular
       instance of this object typechecks.
-
-      Optional:
-       :provided (TypeEnvironment) = The TypeEnvironment in which we should presume
-       interpolation will ultimately occur.
     """
     raise NotImplementedError
 
@@ -193,3 +189,8 @@ class TypeEnvironment(object):
       if scoped_ref is not None and binding.provides(scoped_ref):
         return True
     return False
+
+  def __str__(self):
+    return 'TypeEnvironment(%s, %s)' % (
+      ' '.join(unbound.__name__ for unbound in self._unbound_types),
+      ' '.join('%s=>%s' % (name, bound.__name__) for name, bound in self._bound_types.items()))

@@ -127,6 +127,7 @@ class Object(object):
 
   def __init__(self):
     self._scopes = []
+    self._modulo = TypeEnvironment()
 
   def get(self):
     raise NotImplementedError
@@ -158,6 +159,11 @@ class Object(object):
     new_self._scopes = list(reversed(new_scopes)) + new_self._scopes
     return new_self
 
+  def provided(self, environment):
+    new_self = self.copy()
+    new_self._modulo = new_self._modulo.merge(environment)
+    return new_self
+
   def in_scope(self, *args, **kw):
     """
       Scope this object to a parent environment (like bind but reversed.)
@@ -170,12 +176,15 @@ class Object(object):
   def scopes(self):
     return self._scopes
 
-  def check(self, provided=None):
+  def modulo(self):
+    return self._modulo
+
+  def check(self):
     """
       Type check this object.
     """
     si, uninterp = self.interpolate()
-    type_environment = provided if provided is not None else TypeEnvironment()
+    type_environment = self.modulo()
     for ref in uninterp:
       if not type_environment.covers(ref):
         return TypeCheck(False, "Uninterpolated variables: %s" %

@@ -44,6 +44,7 @@ class ListContainer(Namable, Object, Type):
   def copy(self):
     new_self = self.__class__(self._values)
     new_self._scopes = copy.copy(self.scopes())
+    new_self._modulo = copy.copy(self.modulo())
     return new_self
 
   def __hash__(self):
@@ -87,11 +88,11 @@ class ListContainer(Namable, Object, Type):
       return value if isinstance(value, self.TYPE) else self.TYPE(value)
     return tuple([coerced(v) for v in values])
 
-  def check(self, provided=None):
+  def check(self):
     assert ListContainer.isiterable(self._values)
     for element in self._values:
       assert isinstance(element, self.TYPE)
-      typecheck = element.in_scope(*self.scopes()).check(provided=provided)
+      typecheck = element.in_scope(*self.scopes()).provided(self.modulo()).check()
       if not typecheck.ok():
         return TypeCheck.failure("Element in %s failed check: %s" % (self.__class__.__name__,
           typecheck.message()))
@@ -101,7 +102,7 @@ class ListContainer(Namable, Object, Type):
     unbound = set()
     interpolated = []
     for element in self._values:
-      einterp, eunbound = element.in_scope(*self.scopes()).interpolate()
+      einterp, eunbound = element.in_scope(*self.scopes()).provided(self.modulo()).interpolate()
       interpolated.append(einterp)
       unbound.update(eunbound)
     return self.__class__(interpolated), list(unbound)
@@ -231,6 +232,7 @@ class MapContainer(Namable, Object, Type):
   def copy(self):
     new_self = self.__class__(*self._map)
     new_self._scopes = copy.copy(self.scopes())
+    new_self._modulo = copy.copy(self.modulo())
     return new_self
 
   def __repr__(self):
@@ -246,13 +248,13 @@ class MapContainer(Namable, Object, Type):
     oi, _ = other.interpolate()
     return si._map == oi._map
 
-  def check(self, provided=None):
+  def check(self):
     assert isinstance(self._map, tuple)
     for key, value in self._map:
       assert isinstance(key, self.KEYTYPE)
       assert isinstance(value, self.VALUETYPE)
-      keycheck = key.in_scope(*self.scopes()).check(provided=provided)
-      valuecheck = value.in_scope(*self.scopes()).check(provided=provided)
+      keycheck = key.in_scope(*self.scopes()).provided(self.modulo()).check()
+      valuecheck = value.in_scope(*self.scopes()).provided(self.modulo()).check()
       if not keycheck.ok():
         return TypeCheck.failure("%s key %s failed check: %s" % (self.__class__.__name__,
           key, keycheck.message()))
@@ -265,8 +267,8 @@ class MapContainer(Namable, Object, Type):
     unbound = set()
     interpolated = []
     for key, value in self._map:
-      kinterp, kunbound = key.in_scope(*self.scopes()).interpolate()
-      vinterp, vunbound = value.in_scope(*self.scopes()).interpolate()
+      kinterp, kunbound = key.in_scope(*self.scopes()).provided(self.modulo()).interpolate()
+      vinterp, vunbound = value.in_scope(*self.scopes()).provided(self.modulo()).interpolate()
       unbound.update(kunbound)
       unbound.update(vunbound)
       interpolated.append((kinterp, vinterp))

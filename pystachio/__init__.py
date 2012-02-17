@@ -1,5 +1,5 @@
 __author__ = 'Brian Wickman'
-__version__ = '0.4.1'
+__version__ = '0.4.2'
 __license__ = 'MIT'
 
 from pystachio.typing import (

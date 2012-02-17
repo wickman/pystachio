@@ -28,9 +28,10 @@ def main(args):
     py_test = os.path.join(virtualenvs[1], 'bin', 'py.test')
     tx_targets = [['--tx', 'popen//python=%s' % os.path.join(ve, 'bin', 'python')]
                   for ve in virtualenvs]
-    return ([py_test, '--dist=each'] +
-            list(chain(*tx_targets)) +
-            ['--cov=pystachio', '--cov-report=term-missing', '--cov-report=html'])
+    coverage_args = ['--cov=pystachio', '--cov-report=term-missing', '--cov-report=html']
+    if os.environ.get('WITHOUT_COVERAGE'):
+      coverage_args = []
+    return ([py_test, '--dist=each'] + list(chain(*tx_targets)) + coverage_args)
 
   os.putenv('PYTHONPATH', basedir)
   subprocess.call(gen_shell_command())
