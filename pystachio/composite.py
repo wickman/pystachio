@@ -199,17 +199,20 @@ class Structural(Object, Type, Namable):
       self._schema_data[attr] = self.TYPEMAP[attr].default
     self._schema_data = frozendict(self._schema_data)
 
+  def _process_schema_attribute(self, attr, value):
+    if attr not in self.TYPEMAP:
+      raise AttributeError('Unknown schema attribute %s' % attr)
+    schema_type = self.TYPEMAP[attr]
+    if value is Empty:
+      return Empty
+    elif isinstance(value, schema_type.klazz):
+      return value
+    else:
+      return schema_type.klazz(value)
+
   def _update_schema_data(self, **kw):
-    for attr in kw:
-      if attr not in self.TYPEMAP:
-        raise AttributeError('Unknown schema attribute %s' % attr)
-      schema_type = self.TYPEMAP[attr]
-      if kw[attr] is Empty:
-        self._schema_data[attr] = Empty
-      elif isinstance(kw[attr], schema_type.klazz):
-        self._schema_data[attr] = kw[attr]
-      else:
-        self._schema_data[attr] = schema_type.klazz(kw[attr])
+    for attr, value in kw.items():
+      self._schema_data[attr] = self._process_schema_attribute(attr, value)
 
   def copy(self):
     new_object = self.__class__(**self._schema_data)
@@ -247,8 +250,7 @@ class Structural(Object, Type, Namable):
     if attr not in self.TYPEMAP:
       raise AttributeError("%s has no attribute %s" % (self.__class__.__name__, attr))
 
-    si, _ = self.interpolate()
-    return lambda: si._schema_data[attr]
+    return lambda: self.interpolate_key(attr)
 
   def check(self):
     for name, signature in self.TYPEMAP.items():
@@ -271,14 +273,25 @@ class Structural(Object, Type, Namable):
   def interpolate(self):
     unbound = set()
     interpolated_schema_data = {}
+    scopes = self.scopes()
+    modulo = self.modulo()
     for key, value in self._schema_data.items():
       if value is Empty:
         interpolated_schema_data[key] = Empty
       else:
-        vinterp, vunbound = value.in_scope(*self.scopes()).provided(self.modulo()).interpolate()
+        vinterp, vunbound = value.in_scope(*scopes).provided(modulo).interpolate()
         unbound.update(vunbound)
         interpolated_schema_data[key] = vinterp
     return self.__class__(**interpolated_schema_data), list(unbound)
+
+  def interpolate_key(self, attribute):
+    if self._schema_data[attribute] is Empty:
+      return Empty
+    vinterp, _ = (
+      self._schema_data[attribute].in_scope(*self.scopes())
+                                  .provided(self.modulo())
+                                  .interpolate())
+    return self._process_schema_attribute(attribute, vinterp)
 
   @classmethod
   def type_factory(cls):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages, Command
 
-version = '0.4.2'
+version = '0.4.3'
 
 class PyTest(Command):
   user_options = []
