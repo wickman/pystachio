@@ -2,9 +2,9 @@ from collections import Iterable, Mapping, Sequence
 import copy
 from inspect import isclass
 
-from pystachio.base import Object, frozendict
+from pystachio.base import Object
 from pystachio.compatibility import Compatibility
-from pystachio.naming import Namable, Ref
+from pystachio.naming import Namable, Ref, frozendict
 from pystachio.typing import (
   Type,
   TypeCheck,

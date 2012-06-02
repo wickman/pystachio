@@ -4,6 +4,21 @@ from itertools import chain
 from pystachio.compatibility import Compatibility
 
 
+class frozendict(dict):
+  """A hashable dictionary."""
+  def __key(self):
+    return tuple((k, self[k]) for k in sorted(self))
+
+  def __hash__(self):
+    return hash(self.__key())
+
+  def __eq__(self, other):
+    return self.__key() == other.__key()
+
+  def __repr__(self):
+    return 'frozendict(%s)' % dict.__repr__(self)
+
+
 class Namable(object):
   """
     An object that can be named/dereferenced.

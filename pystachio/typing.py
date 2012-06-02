@@ -1,7 +1,7 @@
 import functools
 from inspect import isclass
 
-from pystachio.naming import Ref, Namable
+from pystachio.naming import Ref, Namable, frozendict
 
 class TypeCheck(object):
   """
@@ -101,6 +101,27 @@ class TypeFactory(TypeFactoryClass):
       deposit[reified_type.__name__] = reified_type
     return deposit
 
+  @staticmethod
+  def load_json(json_list, into=None):
+    """
+      Determine all types touched by loading the type and deposit them into
+      the particular namespace.
+    """
+    def l2t(obj):
+      if isinstance(obj, list):
+        return tuple(l2t(L) for L in obj)
+      elif isinstance(obj, dict):
+        return frozendict(obj)
+      else:
+        return obj
+    return TypeFactory.load(l2t(json_list), into=into)
+
+  @staticmethod
+  def load_file(filename, into=None):
+    import json
+    with open(filename) as fp:
+      return TypeFactory.load_json(json.load(fp), into=into)
+
 
 class TypeMetaclass(type):
   def __instancecheck__(cls, other):
@@ -131,6 +152,11 @@ class Type(object):
   @classmethod
   def serialize_type(cls):
     return (cls.type_factory(),) + cls.type_parameters()
+
+  @classmethod
+  def dump(cls, fp):
+    import json
+    json.dump(cls.serialize_type(), fp)
 
   def check(self):
     """

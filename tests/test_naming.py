@@ -2,7 +2,7 @@ from copy import deepcopy
 import pytest
 
 from pystachio.base import Environment
-from pystachio.naming import Ref, Namable
+from pystachio.naming import Ref, Namable, frozendict
 
 from pystachio.basic import *
 from pystachio.container import *
@@ -10,6 +10,14 @@ from pystachio.composite import *
 
 def ref(address):
   return Ref.from_address(address)
+
+
+def test_reprs():
+  fd = frozendict(a = 1, b = 2)
+  assert repr(fd) == "frozendict({'a': 1, 'b': 2})"
+  env = Environment(fd)
+  repr(env)
+
 
 
 def test_ref_parsing():

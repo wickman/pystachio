@@ -2,8 +2,8 @@ from collections import Mapping
 import copy
 from inspect import isclass
 
-from pystachio.base import Object, frozendict
-from pystachio.naming import Ref, Namable
+from pystachio.base import Object
+from pystachio.naming import Ref, Namable, frozendict
 from pystachio.typing import (
   Type,
   TypeCheck,
@@ -152,7 +152,7 @@ class StructFactory(TypeFactory):
                    for attr, param in parameters)
     bindings = TypeEnvironment.deserialize(bindings, type_dict)
     attributes = {'TYPEMAP': typemap, 'REQUIRES': bindings}
-    return TypeMetaclass(name, (Structural,), attributes)
+    return TypeMetaclass(str(name), (Structural,), attributes)
 
 
 class StructMetaclass(type):

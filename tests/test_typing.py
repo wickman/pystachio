@@ -4,6 +4,7 @@ from pystachio import *
 def ref(address):
   return Ref.from_address(address)
 
+
 def test_basic_schemas():
   BASIC_TYPES = (Integer, Float, String)
 
@@ -17,6 +18,7 @@ def test_basic_schemas():
     for typ2 in BASIC_TYPES:
       assert isinstance(TypeFactory.new({}, *Map(typ1, typ2).serialize_type())({}), Map(typ1, typ2))
 
+
 def test_complex_schemas():
   BASIC_TYPES = (Integer, Float, String)
   LIST_TYPES = [List(bt) for bt in BASIC_TYPES]
@@ -29,6 +31,7 @@ def test_complex_schemas():
       for typ1 in mt1:
         for typ2 in mt2:
           assert isinstance(TypeFactory.new({}, *Map(typ1, typ2).serialize_type())({}), Map(typ1, typ2))
+
 
 def test_composite_schemas_are_not_lossy():
   class C1(Struct):
@@ -67,6 +70,7 @@ def test_composite_schemas_are_not_lossy():
       assert Map(typ1, typ2)(default.get()) == default, (
         'Unwrapping/rewrapping should leave values intact: %s vs %s' % (typ1, typ2))
 
+
 def test_recursive_unwrapping():
   class Employee(Struct):
     name = Required(String)
@@ -87,6 +91,31 @@ def test_recursive_unwrapping():
   assert twttr.check().ok()
   repr(twttr.check())
 
+
+def test_json():
+  import os, tempfile
+
+  class Employee(Struct):
+    name = Required(String)
+    location = Default(String, "San Francisco")
+    age = Integer
+
+  class Employer(Struct):
+    name = Required(String)
+    employees = Default(List(Employee), [Employee(name = 'Bob')])
+
+  try:
+    fd, fn = tempfile.mkstemp()
+    os.close(fd)
+
+    with open(fn, 'w') as fp:
+      Employer.dump(fp)
+
+    namespace = TypeFactory.load_file(fn)
+    assert isinstance(namespace['Employer'](), Employer)
+
+  finally:
+    os.unlink(fn)
 
 
 def test_load():

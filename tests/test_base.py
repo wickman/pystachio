@@ -1,5 +1,5 @@
 import pytest
-from pystachio.base import Object, Environment, frozendict
+from pystachio.base import Object, Environment
 from pystachio.naming import Ref, Namable
 from pystachio.basic import Integer, String
 from pystachio.container import List, Map
@@ -134,13 +134,6 @@ def test_environment_bad_values():
   for val in bad_values:
     with pytest.raises(ValueError):
       Environment(a = val)
-
-
-def test_reprs():
-  fd = frozendict(a = 1, b = 2)
-  assert repr(fd) == "frozendict({'a': 1, 'b': 2})"
-  env = Environment(fd)
-  repr(env)
 
 
 def test_object_unimplementeds():
