@@ -2,7 +2,7 @@ from collections import Mapping
 import copy
 from inspect import isclass
 
-from pystachio.base import Object
+from pystachio.base import Object, Environment
 from pystachio.naming import Ref, Namable, frozendict
 from pystachio.typing import (
   Type,
@@ -270,10 +270,15 @@ class Structural(Object, Type, Namable):
   def modulo(self):
     return super(Structural, self).modulo().merge(self.REQUIRES)
 
+  def _self_environment(self):
+    return dict((key, value) for (key, value) in self._schema_data.items()
+                if value is not Empty)
+
   def interpolate(self):
     unbound = set()
+    schema_environment = Environment(self._self_environment())
     interpolated_schema_data = {}
-    scopes = self.scopes()
+    scopes = [schema_environment] + self.scopes()
     modulo = self.modulo()
     for key, value in self._schema_data.items():
       if value is Empty:

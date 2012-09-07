@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages, Command
 
-version = '0.4.3'
+version = '0.5.0'
+
 
 class PyTest(Command):
   user_options = []
@@ -20,6 +21,7 @@ class PyTest(Command):
       raise Exception('Running tests requires pytest.')
     errno = subprocess.call([sys.executable, '-m', 'py.test'])
     raise SystemExit(errno)
+
 
 setup(
   name                 = 'pystachio',

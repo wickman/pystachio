@@ -30,6 +30,7 @@ def test_bad_inputs():
   with pytest.raises(ValueError):
     Resources(None)
 
+
 def test_nested_composites():
   class Resources(Struct):
     cpu = Float
@@ -46,6 +47,7 @@ def test_nested_composites():
   repr(Process(name = 15)(resources = Resources(cpu = 1.0)))
   repr(Process.TYPEMAP)
 
+
 def test_typesig():
   class Process1(Struct):
     name = String
@@ -60,6 +62,7 @@ def test_typesig():
   assert Process1.TYPEMAP['name'] != Process3.TYPEMAP['name']
   assert Process2.TYPEMAP['name'] != Process3.TYPEMAP['name']
   repr(Process1.TYPEMAP['name'])
+
 
 def test_defaults():
   class Resources(Struct):
@@ -93,6 +96,23 @@ def test_composite_interpolation():
          p(resources = {'{{whee}}': Resources()}).bind(whee='foo')
   assert p(resources = {'{{whee}}': Resources(cpu='{{whee}}')}).bind(whee=1.0) == \
          p(resources = {'1.0': Resources(cpu=1.0)})
+
+
+class test_internal_interpolate():
+  class Process(Struct):
+    name = Required(String)
+    cmdline = Required(String)
+
+  class Task(Struct):
+    name = Default(String, 'task-{{processes[0].name}}')
+    processes = List(Process)
+
+  assert Task().name() == String('task-{{processes[0].name}}')
+  assert Task(processes=[Process(name='hello_world', cmdline='echo hello_world')]).name() == \
+    String('task-hello_world')
+  assert Task(processes=[Process(name='hello_world', cmdline='echo hello_world'),
+                         Process(name='hello_world2', cmdline='echo hello world').name() == \
+    String('task-hello_world')
 
 
 def test_find():

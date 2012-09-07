@@ -89,6 +89,7 @@ class SimpleObject(Object, Type):
   def type_parameters(cls):
     return ()
 
+
 class String(SimpleObject):
   @classmethod
   def checker(cls, obj):
@@ -114,7 +115,6 @@ class StringFactory(TypeFactory):
   @staticmethod
   def create(type_dict, *type_parameters):
     return String
-
 
 
 class Integer(SimpleObject):
