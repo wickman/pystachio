@@ -15,18 +15,22 @@ class MustacheParser(object):
 
   _ADDRESS_DELIMITER = '&'
   _MUSTACHE_RE = re.compile(r"{{(%c)?([^{}]+?)\1?}}" % _ADDRESS_DELIMITER)
+  MAX_ITERATIONS = 100
 
-  class Uninterpolatable(Exception): pass
+  class Error(Exception): pass
+  class Uninterpolatable(Error): pass
 
   @staticmethod
-  def split(string):
+  def split(string, keep_aliases=False):
     splits = MustacheParser._MUSTACHE_RE.split(string)
     first_split = splits.pop(0)
     outsplits = [first_split] if first_split else []
     assert len(splits) % 3 == 0
     for k in range(0, len(splits), 3):
       if splits[k] == MustacheParser._ADDRESS_DELIMITER:
-        outsplits.append('{{%s}}' % splits[k+1])
+        outsplits.append('{{%s%s}}' % (
+            MustacheParser._ADDRESS_DELIMITER if keep_aliases else '',
+            splits[k+1]))
       elif splits[k] == None:
         outsplits.append(Ref.from_address(splits[k+1]))
       else:
@@ -37,14 +41,12 @@ class MustacheParser(object):
     return outsplits
 
   @staticmethod
-  def join(splits, *namables, **kw):
+  def join(splits, *namables):
     """
       Interpolate strings.
 
-      :params splits: Return the output of Parser.split(string)
+      :params splits: The output of Parser.split(string)
       :params namables: A sequence of Namable objects in which the interpolation should take place.
-      :kwargs "strict" (optional, defaults to True): If strict=True, raise an exception on unbound
-        variables.
 
       Returns 2-tuple containing:
         joined string, list of unbound object ids (potentially empty)
@@ -56,7 +58,6 @@ class MustacheParser(object):
         resolved = False
         for namable in namables:
           try:
-            # value = ref.resolve(namable)
             value = namable.find(ref)
             resolved = True
             break
@@ -67,8 +68,28 @@ class MustacheParser(object):
         else:
           isplits.append(ref)
           unbound.append(ref)
-          if kw.get('strict', True):
-            raise MustacheParser.Uninterpolatable(ref.address())
       else:
         isplits.append(ref)
     return (''.join(map(str if Compatibility.PY3 else unicode, isplits)), unbound)
+
+  @classmethod
+  def resolve(cls, stream, *namables):
+    def iterate(st, keep_aliases=True):
+      refs = MustacheParser.split(st, keep_aliases=keep_aliases)
+      unbound = [ref for ref in refs if isinstance(ref, Ref)]
+      repl, interps = MustacheParser.join(refs, *namables)
+      rebound = [ref for ref in MustacheParser.split(repl, keep_aliases=keep_aliases)
+                 if isinstance(ref, Ref)]
+      return repl, interps, unbound
+
+    iterations = 0
+    for iteration in range(cls.MAX_ITERATIONS):
+      stream, interps, unbound = iterate(stream, keep_aliases=True)
+      if interps == unbound:
+        break
+    else:
+      raise cls.Uninterpolatable('Unable to interpolate %s!  Maximum replacements reached.'
+          % stream)
+
+    stream, _, unbound = iterate(stream, keep_aliases=False)
+    return stream, unbound

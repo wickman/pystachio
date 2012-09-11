@@ -1,12 +1,13 @@
 from pprint import pformat
 
 from pystachio.compatibility import Compatibility
-from pystachio.typing import (
-  TypeCheck,
-  TypeEnvironment)
 from pystachio.naming import (
   Ref,
   Namable)
+from pystachio.parsing import MustacheParser
+from pystachio.typing import (
+  TypeCheck,
+  TypeEnvironment)
 
 
 class Environment(Namable):
@@ -166,7 +167,11 @@ class Object(object):
     """
       Type check this object.
     """
-    si, uninterp = self.interpolate()
+    try:
+      si, uninterp = self.interpolate()
+    # TODO(wickman) This should probably be pushed out to the interpolate leaves.
+    except MustacheParser.Uninterpolatable as e:
+      return TypeCheck(False, "Unable to interpolate: %s" % e)
     type_environment = self.modulo()
     for ref in uninterp:
       if not type_environment.covers(ref):

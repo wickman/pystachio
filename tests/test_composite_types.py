@@ -98,20 +98,26 @@ def test_composite_interpolation():
          p(resources = {'1.0': Resources(cpu=1.0)})
 
 
-class test_internal_interpolate():
+def test_internal_interpolate():
   class Process(Struct):
     name = Required(String)
     cmdline = Required(String)
 
   class Task(Struct):
     name = Default(String, 'task-{{processes[0].name}}')
-    processes = List(Process)
+    processes = Required(List(Process))
+
+  class Job(Struct):
+    name = Default(String, '{{task.name}}')
+    task = Required(Task)
 
   assert Task().name() == String('task-{{processes[0].name}}')
   assert Task(processes=[Process(name='hello_world', cmdline='echo hello_world')]).name() == \
     String('task-hello_world')
   assert Task(processes=[Process(name='hello_world', cmdline='echo hello_world'),
-                         Process(name='hello_world2', cmdline='echo hello world').name() == \
+                         Process(name='hello_world2', cmdline='echo hello world')]).name() == \
+    String('task-hello_world')
+  assert Job(task=Task(processes=[Process(name="hello_world")])).name() == \
     String('task-hello_world')
 
 
@@ -228,17 +234,20 @@ def test_unbound_provisions():
     name = String
 
   class Job(Struct):
-    name = Default(String, '{{name}}')
+    name = Default(String, '{{job.name}}')
 
   assert not Job().check().ok()
-  assert Job().bind(name = 'whee').check().ok()
+  assert Job().bind(job = Environment(name = 'whee')).check().ok()
 
-  @Provided(JobContext)
+  @Provided(job=JobContext)
   class Job(Struct):
-    name = Default(String, '{{name}}')
+    name = Default(String, '{{job.name}}')
 
   assert Job().check().ok()
-  assert Job().bind(name = 'whee').check().ok()
+  assert Job().bind(job = Environment(name = 'whee')).check().ok()
+
+  assert Job().check().ok()
+  assert Job().bind(job = JobContext(name = "whee")).check().ok()
 
 
 def test_invalid_provisions():

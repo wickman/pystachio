@@ -270,15 +270,17 @@ class Structural(Object, Type, Namable):
   def modulo(self):
     return super(Structural, self).modulo().merge(self.REQUIRES)
 
-  def _self_environment(self):
+  def _self_scope(self):
     return dict((key, value) for (key, value) in self._schema_data.items()
                 if value is not Empty)
 
+  def scopes(self):
+    return [Environment(self._self_scope())] + self._scopes
+
   def interpolate(self):
     unbound = set()
-    schema_environment = Environment(self._self_environment())
     interpolated_schema_data = {}
-    scopes = [schema_environment] + self.scopes()
+    scopes = self.scopes()
     modulo = self.modulo()
     for key, value in self._schema_data.items():
       if value is Empty:

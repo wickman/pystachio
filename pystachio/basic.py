@@ -72,8 +72,7 @@ class SimpleObject(Object, Type):
     if not isinstance(self._value, Compatibility.stringy):
       return self.__class__(self.coerce(self._value)), []
     else:
-      splits = MustacheParser.split(self._value)
-      joins, unbound = MustacheParser.join(splits, *self.scopes(), strict=False)
+      joins, unbound = MustacheParser.resolve(self._value, *self.scopes())
       if unbound:
         return self.__class__(joins), [ref for ref in unbound if not self.modulo().covers(ref)]
       else:
