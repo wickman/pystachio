@@ -29,11 +29,16 @@ def test_ref_parsing():
   ref('.a').components() == [Ref.Dereference('a')]
   ref('a.b').components() == [Ref.Dereference('a'), Ref.Dereference('b')]
   ref('[a]').components() == [Ref.Index('a')]
+  ref('[a-]').components() == [Ref.Index('a-')]
   ref('[0].a').components() == [Ref.Index('0'), Ref.Dereference('a')]
   ref('[0][a]').components() == [Ref.Index('0'), Ref.Index('a')]
-  for refstr in ['[a]b', '[]', '[[a]', 'b[[[', 'a.1', '1.a', '.[a]', '0']:
+  for refstr in ('[a]b', '[]', '[[a]', 'b[[[', 'a.1', '1.a', '.[a]', '0'):
     with pytest.raises(Ref.InvalidRefError):
       ref(refstr)
+  for refstr in ('a-b', '-b', 'a-'):
+    with pytest.raises(Ref.InvalidRefError):
+      ref(refstr)
+
 
 
 def test_ref_lookup():
@@ -80,7 +85,8 @@ def test_complex_lookup():
 
 
   assert Environment(twttr = twttr).find(ref('twttr.employees[1].first')) == String('marius')
-  assert Map(String,Employer)({'twttr': twttr}).find(ref('[twttr].employees[1].first')) == String('marius')
+  assert Map(String,Employer)({'twttr': twttr}).find(ref('[twttr].employees[1].first')) == \
+      String('marius')
   assert List(Employer)([twttr]).find(ref('[0].employees[0].last')) == String('wickman')
   assert List(Employer)([twttr]).find(ref('[0].employees[2].last')) == String('{{default.last}}')
 

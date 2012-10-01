@@ -103,6 +103,10 @@ class Object(object):
     Object base class, encapsulating a set of variable bindings scoped to this object.
   """
 
+  class CoercionError(ValueError):
+    def __init__(self, src, dst):
+      ValueError.__init__(self, "Cannot coerce '%s' to %s" % (src, dst.__name__))
+
   class InterpolationError(Exception): pass
 
   @classmethod
@@ -170,7 +174,7 @@ class Object(object):
     try:
       si, uninterp = self.interpolate()
     # TODO(wickman) This should probably be pushed out to the interpolate leaves.
-    except MustacheParser.Uninterpolatable as e:
+    except (Object.CoercionError, MustacheParser.Uninterpolatable) as e:
       return TypeCheck(False, "Unable to interpolate: %s" % e)
     type_environment = self.modulo()
     for ref in uninterp:
@@ -185,7 +189,7 @@ class Object(object):
   def __mod__(self, namable):
     if isinstance(namable, dict):
       namable = Environment.wrap(namable)
-    interp, _ = self.in_scope(namable).interpolate()
+    interp, _ = self.bind(namable).interpolate()
     return interp
 
   def interpolate(self):

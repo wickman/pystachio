@@ -1,6 +1,7 @@
 from collections import Mapping
 import copy
 from inspect import isclass
+import json
 
 from pystachio.base import Object, Environment
 from pystachio.naming import Ref, Namable, frozendict
@@ -324,6 +325,28 @@ class Structural(Object, Type, Namable):
           if issubclass(klazz, Namable):
             return cls.TYPEMAP[ref.action().value].klazz.provides(ref.rest())
     return False
+
+  @classmethod
+  def _filter_against_schema(cls, values):
+    return dict((key, val) for (key, val) in values.items()
+                if key in cls.TYPEMAP)
+
+  @classmethod
+  def json_load(cls, fp, strict=False):
+    return cls(json.load(fp) if strict else cls._filter_against_schema(json.load(fp)))
+
+  @classmethod
+  def json_loads(cls, json_string, strict=False):
+    return cls(json.loads(json_string) if strict
+               else cls._filter_against_schema(json.loads(json_string)))
+
+  def json_dump(self, fp):
+    d, _ = self.interpolate()
+    return json.dump(d.get(), fp)
+
+  def json_dumps(self):
+    d, _ = self.interpolate()
+    return json.dumps(d.get())
 
   def find(self, ref):
     if not ref.is_dereference():

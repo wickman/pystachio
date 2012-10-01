@@ -1,8 +1,11 @@
+import json
+import os
 import pytest
+import tempfile
 from pystachio.naming import Ref, Namable
 from pystachio.basic import *
 from pystachio.container import List, Map
-from pystachio.composite import Struct
+from pystachio.composite import Struct, Default
 
 def ref(address):
   return Ref.from_address(address)
@@ -186,3 +189,66 @@ def test_hashing():
   assert List(Integer)([3,2,1]) not in map
   assert Map(String,Integer)({'b': 2, 'a': 1}) in map
   assert Map(String,Integer)({'a': 2, 'b': 1}) not in map
+
+def test_load_json():
+  class Process(Struct):
+    name = Default(String, 'hello')
+    cmdline = String
+
+  GOOD_JSON = [
+     '{}',
+     '{"name": "hello world"}',
+     '{"cmdline": "bitchin"}',
+     '{"name": "hello world", "cmdline": "bitchin"}',
+  ]
+
+  FAILSTRICT_JSON = [
+    '{"name": "hello world", "cmdline": "bitchin", "extra_schema_arg": "yay"}'
+  ]
+
+  FAIL = [
+    '{"name": [1,2], "cmdline": "bitchin"}',
+    '{"name": [1,2], "cmdline": "bitchin", "extra_schema": "foo"}',
+  ]
+
+  for js in GOOD_JSON + FAILSTRICT_JSON:
+    assert Process.json_loads(js, strict=False).check().ok()
+
+  for js in GOOD_JSON:
+    assert Process.json_loads(js, strict=True).check().ok()
+
+  for js in FAILSTRICT_JSON:
+    with pytest.raises(AttributeError):
+      Process.json_loads(js, strict=True)
+
+  for js in FAIL:
+    assert not Process.json_loads(js, strict=False).check().ok()
+
+  with pytest.raises(AttributeError):
+    Process.json_loads('{"name": [1,2], "cmdline": "bitchin", "extra_schema": "foo"}', strict=True)
+
+
+def test_load_json_fp():
+  class Process(Struct):
+    name = Default(String, 'hello')
+    cmdline = String
+
+  GOOD_JSON = [
+     '{}',
+     '{"name": "hello world"}',
+     '{"cmdline": "bitchin"}',
+     '{"name": "hello world", "cmdline": "bitchin"}',
+  ]
+
+  for js in GOOD_JSON:
+    p = Process.json_loads(js)
+    assert p == Process.json_loads(p.json_dumps())
+    try:
+      fd, fn = tempfile.mkstemp()
+      os.close(fd)
+      with open(fn, 'w') as fp:
+        p.json_dump(fp)
+      with open(fn, 'r') as fp:
+        assert p == Process.json_load(fp)
+    finally:
+      os.unlink(fn)

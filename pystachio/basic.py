@@ -10,10 +10,6 @@ class SimpleObject(Object, Type):
   """
     A simply-valued (unnamable) object.
   """
-  class CoercionError(ValueError):
-    def __init__(self, src, dst):
-      ValueError.__init__(self, "Cannot coerce '%s' to %s" % (src, dst.__name__))
-
   def __init__(self, value):
     self._value = value
     Object.__init__(self)
@@ -105,7 +101,7 @@ class String(SimpleObject):
   def coerce(cls, value):
     ACCEPTED_SOURCE_TYPES = Compatibility.stringy + Compatibility.numeric
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
-      raise SimpleObject.CoercionError(value, cls)
+      raise cls.CoercionError(value, cls)
     return str(value) if Compatibility.PY3 else unicode(value)
 
 
@@ -129,11 +125,11 @@ class Integer(SimpleObject):
   def coerce(cls, value):
     ACCEPTED_SOURCE_TYPES = Compatibility.numeric + Compatibility.stringy
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
-      raise SimpleObject.CoercionError(value, cls)
+      raise cls.CoercionError(value, cls)
     try:
       return int(value)
     except ValueError:
-      raise SimpleObject.CoercionError(value, cls)
+      raise cls.CoercionError(value, cls)
 
 
 class IntegerFactory(TypeFactory):
@@ -141,9 +137,6 @@ class IntegerFactory(TypeFactory):
   @staticmethod
   def create(type_dict, *type_parameters):
     return Integer
-
-
-
 
 
 class Float(SimpleObject):
@@ -159,11 +152,11 @@ class Float(SimpleObject):
   def coerce(cls, value):
     ACCEPTED_SOURCE_TYPES = Compatibility.numeric + Compatibility.stringy
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
-      raise SimpleObject.CoercionError(value, cls)
+      raise cls.CoercionError(value, cls)
     try:
       return float(value)
     except ValueError:
-      raise SimpleObject.CoercionError(value, cls)
+      raise cls.CoercionError(value, cls)
 
 class FloatFactory(TypeFactory):
   PROVIDES = 'Float'

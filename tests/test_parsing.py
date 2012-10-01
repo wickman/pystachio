@@ -1,8 +1,11 @@
 import pytest
 
-from pystachio.parsing import MustacheParser
-from pystachio.naming import Ref
 from pystachio.base import Environment
+from pystachio.basic import String
+from pystachio.composite import Struct, Required, Default
+from pystachio.container import List
+from pystachio.naming import Ref
+from pystachio.parsing import MustacheParser
 
 
 def ref(address):
@@ -65,35 +68,35 @@ def test_nested_mustache_resolution():
   oe = Environment(foo = '{{bar}}', bar = '{{baz}}', baz = 'hello')
   for pattern in ('{{foo}}', '{{bar}}', '{{baz}}', 'hello'):
     resolved, unbound = MustacheParser.resolve('%s world' % pattern, oe)
-    assert resolved == 'hello'
+    assert resolved == 'hello world'
     assert unbound == []
 
   # in structs
   class Process(Struct):
     name = Required(String)
-    cmdline = String)
+    cmdline = String
 
   class Task(Struct):
     name = Default(String, '{{processes[0].name}}')
     processes = List(Process)
 
   task = Task(processes = [Process(name="hello"), Process(name="world")])
-  assert task.name() == 'hello'
+  assert task.name().get() == 'hello'
 
   # iterably
   resolve_string = '{{foo[{{bar}}]}}'
-  resolve_list = List(String)(["hello", "world"]))
+  resolve_list = List(String)(["hello", "world"])
   resolved, unbound = MustacheParser.resolve(resolve_string, Environment(foo=resolve_list, bar=0))
   assert resolved == 'hello'
   assert unbound == []
-  resolved, unbound = MustacheParser.resolve(resolve_string, Environment(foo=resolve_list, bar="0")
+  resolved, unbound = MustacheParser.resolve(resolve_string, Environment(foo=resolve_list, bar="0"))
   assert resolved == 'hello'
   assert unbound == []
   resolved, _ = MustacheParser.resolve(resolve_string, Environment(foo=resolve_list, bar=1))
   assert resolved == 'world'
   resolved, unbound = MustacheParser.resolve(resolve_string, Environment(foo=resolve_list, bar=2))
   assert resolved == '{{foo[2]}}'
-  assert unbound == [ref('{{foo[2]}}')]
+  assert unbound == [ref('foo[2]')]
 
 
 def test_mustache_resolve_cycles():

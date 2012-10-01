@@ -60,8 +60,12 @@ class Ref(object):
   """
     A reference into to a hierarchically named object.
   """
-  _REF_RE = re.compile('(\.\w+|\[\w+\])')
-  _VALID_START = re.compile('[a-zA-Z_]')
+  # ref re
+  # ^[^\d\W]\w*\Z
+  _DEREF_RE = r'[^\d\W]\w*'
+  _INDEX_RE = r'[\w\-]+'
+  _REF_RE = re.compile(r'(\.' + _DEREF_RE + r'|\[' + _INDEX_RE + r'\])')
+  _VALID_START = re.compile(r'[a-zA-Z_]')
   _COMPONENT_SEPARATOR = '.'
 
   class Component(object):
@@ -75,6 +79,9 @@ class Ref(object):
     def __eq__(self, other):
       return self.__class__ == other.__class__ and self.value == other.value
 
+    def __ne__(self, other):
+      return not (self == other)
+
     def __lt__(self, other):
       return self.value < other.value
 
@@ -82,12 +89,12 @@ class Ref(object):
       return self.value > other.value
 
   class Index(Component):
-    RE = re.compile('^\w+$')
+    RE = re.compile('^[\w\-]+$')
     def __repr__(self):
       return '[%s]' % self._value
 
   class Dereference(Component):
-    RE = re.compile('^[a-zA-Z_]\w*$')
+    RE = re.compile('^[^\d\W]\w*$')
     def __repr__(self):
       return '.%s' % self._value
 
