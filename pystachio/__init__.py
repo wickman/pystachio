@@ -2,6 +2,10 @@ __author__ = 'Brian Wickman'
 __version__ = '0.5.2'
 __license__ = 'MIT'
 
+import sys
+if sys.version_info < (2, 6, 5):
+  raise ImportError("pystachio requires Python >= 2.6.5")
+
 from pystachio.typing import (
   Type,
   TypeCheck,
