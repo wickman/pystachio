@@ -7,15 +7,16 @@
 # ./setup.sh python2.6 python2.7 python3.2 pypy-1.6
 #
 
+VEV=1.8.2
 MY_DIR=$(dirname $0)
 BASE_DIR=$MY_DIR
 
 mkdir .virtualenv.cache
 pushd .virtualenv.cache
-  if ! test -f virtualenv-1.7.tar.gz; then
-    wget http://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.7.tar.gz
+  if ! test -f virtualenv-$VEV.tar.gz; then
+    wget http://pypi.python.org/packages/source/v/virtualenv/virtualenv-$VEV.tar.gz
   fi
-  gzip -cd virtualenv-1.7.tar.gz | tar -xvf -
+  gzip -cd virtualenv-$VEV.tar.gz | tar -xvf -
 popd
 
 for bin in $*; do
@@ -29,7 +30,7 @@ EOF
     echo Cleaning original virtualenv
     rm -rf $TARGET
   fi
-  $bin .virtualenv.cache/virtualenv-1.7/virtualenv.py --distribute $TARGET
+  $bin .virtualenv.cache/virtualenv-$VEV/virtualenv.py --distribute $TARGET
   $TARGET/bin/pip install --download-cache=.virtualenv.cache pytest pytest-cov pytest-xdist
 done
 rm -f .target
