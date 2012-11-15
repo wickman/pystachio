@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages, Command
 
-version = '0.5.2'
+version = '0.6.0-dev'
 
 
 class PyTest(Command):

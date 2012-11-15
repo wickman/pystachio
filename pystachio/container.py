@@ -163,6 +163,18 @@ class MapFactory(TypeFactory):
       { 'KEYTYPE': key_klazz, 'VALUETYPE': value_klazz })
 
 
+# TODO(wickman) Technically it's possible to do the following:
+#
+# >>> my_map = Map(Boolean,Integer)((True,2), (False,3), (False, 2))
+# >>> my_map
+# BooleanIntegerMap(True => 2, False => 3, False => 2)
+# >>> my_map.get()
+# frozendict({False: 2, True: 2})
+# >>> my_map[True]
+# Integer(2)
+# >>> my_map.get()[True]
+# 2
+# we should filter tuples for uniqueness.
 class MapContainer(Namable, Object, Type):
   """
     The Map container type.  This is the base class for all user-generated
@@ -182,7 +194,7 @@ class MapContainer(Namable, Object, Type):
     """
     if len(args) == 1 and isinstance(args[0], Mapping):
       self._map = self._coerce_map(copy.copy(args[0]))
-    elif all(isinstance(arg, Iterable) and len(arg)==2 for arg in args):
+    elif all(isinstance(arg, Iterable) and len(arg) == 2 for arg in args):
       self._map = self._coerce_tuple(args)
     else:
       raise ValueError("Unexpected input to MapContainer: %s" % repr(args))

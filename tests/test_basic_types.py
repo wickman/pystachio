@@ -1,5 +1,11 @@
 import pytest
-from pystachio.basic import String, Integer, Float, SimpleObject
+from pystachio.basic import (
+    Boolean,
+    Float,
+    Integer,
+    SimpleObject,
+    String)
+
 
 def unicodey(s):
   from sys import version_info
@@ -9,7 +15,7 @@ def unicodey(s):
     return s
 
 def test_bad_inputs():
-  for typ in Float, Integer, String:
+  for typ in Float, Integer, String, Boolean:
     with pytest.raises(TypeError):
       typ()
     with pytest.raises(TypeError):
@@ -17,8 +23,8 @@ def test_bad_inputs():
     with pytest.raises(TypeError):
       typ(foo = '123')
 
-    bad_inputs = [ {1:2}, None, type, Float, Integer, String,
-                   Float(1), Integer(1), String(1) ]
+    bad_inputs = [ {1:2}, None, type, Float, Integer, String, Boolean,
+                   Float(1), Integer(1), String(1), Boolean(1) ]
     for inp in bad_inputs:
       with pytest.raises(SimpleObject.CoercionError):
         '%s' % typ(inp)
@@ -67,6 +73,28 @@ def test_integer_constructors():
   assert Integer('500').check().ok()
   assert not Integer('{{foo}}').check().ok()
 
+
+def test_boolean_constructors():
+  bad_inputs = ['', 'a b c', unicodey('a b c'), unicodey(''), '1e5']
+  good_inputs = [unicodey('{{foo}}'), -1, 0, 1, 2, 'true', 'false', True, False]
+
+  for input in bad_inputs:
+    with pytest.raises(SimpleObject.CoercionError):
+      '%s' % Boolean(input)
+
+  for input in good_inputs:
+    '%s' % Boolean(input)
+    repr(Boolean(input))
+
+  assert Boolean(123).check().ok()
+  assert Boolean('true').check().ok()
+  assert Boolean('false').check().ok()
+  assert Boolean(True).check().ok()
+  assert Boolean(False).check().ok()
+  assert not Boolean('{{foo}}').check().ok()
+  assert Boolean('{{foo}}').bind(foo=True).check().ok()
+
+
 def test_cmp():
   assert not Float(1) == Integer(1)
   assert Float(1) != Integer(1)
@@ -96,7 +124,8 @@ def test_hash():
   map = {
     Integer(1): 'foo',
     String("bar"): 'baz',
-    Float('{{herp}}'): 'derp'
+    Float('{{herp}}'): 'derp',
+    Boolean('true'): 'slerp'
   }
   assert Integer(1) in map
   assert String("bar") in map
@@ -104,3 +133,5 @@ def test_hash():
   assert Float('{{derp}}') not in map
   assert Integer(2) not in map
   assert String("baz") not in map
+  assert Boolean('false') not in map
+  assert Boolean('true') in map
