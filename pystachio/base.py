@@ -25,7 +25,9 @@ class Environment(Namable):
       if isinstance(value, Compatibility.numeric + Compatibility.stringy):
         return str(value)
       else:
-        raise ValueError('Error in Environment.wrap(%s)' % repr(value))
+        raise ValueError(
+          'Environment values must be strings, numbers, Objects or other Environments. '
+          'Got %s instead.' % type(value))
 
   def _assimilate_dictionary(self, d):
     for key, val in d.items():
