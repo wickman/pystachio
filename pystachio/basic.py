@@ -183,9 +183,9 @@ class Boolean(SimpleObject):
     if isinstance(value, bool):
       return value
     elif isinstance(value, Compatibility.stringy):
-      if value.lower() == "true":
+      if value.lower() in ("true", "1"):
         return True
-      elif value.lower() == "false":
+      elif value.lower() in ("false", "0"):
         return False
       else:
         raise cls.CoercionError(value, cls)

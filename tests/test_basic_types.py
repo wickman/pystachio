@@ -76,8 +76,8 @@ def test_integer_constructors():
 
 
 def test_boolean_constructors():
-  bad_inputs = ['', 'a b c', unicodey('a b c'), unicodey(''), '1e5']
-  good_inputs = [unicodey('{{foo}}'), -1, 0, 1, 2, 'true', 'false', True, False]
+  bad_inputs = ['', 'a b c', unicodey('a b c'), unicodey(''), '1e5', ' 0']
+  good_inputs = [unicodey('{{foo}}'), -1, 0, 1, 2, 'true', 'false', '0', '1', True, False]
 
   for input in bad_inputs:
     with pytest.raises(SimpleObject.CoercionError):
@@ -87,6 +87,13 @@ def test_boolean_constructors():
     '%s' % Boolean(input)
     repr(Boolean(input))
 
+  assert Boolean(0) == Boolean(False)
+  assert Boolean(0) != Boolean(True)
+  assert Boolean(1) == Boolean(True)
+  assert Boolean(1) != Boolean(False)
+  assert Boolean("0") == Boolean(False)
+  assert Boolean("1") == Boolean(True)
+  assert not Boolean("2").check().ok()
   assert Boolean(123).check().ok()
   assert Boolean('true').check().ok()
   assert Boolean('false').check().ok()
