@@ -3,6 +3,7 @@ from inspect import isclass
 
 from pystachio.naming import Ref, Namable, frozendict
 
+
 class TypeCheck(object):
   """
     Encapsulate the results of a type check pass.

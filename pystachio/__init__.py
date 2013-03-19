@@ -17,6 +17,7 @@ from pystachio.naming import Namable, Ref
 
 from pystachio.basic import (
   Boolean,
+  Enum,
   Float,
   Integer,
   String)

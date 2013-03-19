@@ -1,6 +1,7 @@
 import pytest
 from pystachio.basic import (
     Boolean,
+    Enum,
     Float,
     Integer,
     SimpleObject,
@@ -135,3 +136,41 @@ def test_hash():
   assert String("baz") not in map
   assert Boolean('false') not in map
   assert Boolean('true') in map
+
+
+def test_N_part_enum_constructors():
+  EmptyEnum = Enum()
+  EmptyEnum('{{should_work}}')
+  with pytest.raises(ValueError):
+    repr(EmptyEnum('Anything'))
+
+  OneEnum = Enum('One')
+  OneEnum('One')
+  with pytest.raises(ValueError):
+    OneEnum('Two')
+
+  TwoEnum = Enum('One', 'Two')
+  for value in ('One', 'Two', '{{anything}}'):
+    TwoEnum(value)
+  for value in ('', 1, None, 'Three'):
+    with pytest.raises(ValueError):
+      TwoEnum(value)
+
+  assert TwoEnum('One').check().ok()
+  assert TwoEnum('Two').check().ok()
+  assert TwoEnum('{{anything}}').bind(anything='One').check().ok()
+  assert not TwoEnum('{{anything}}').check().ok()
+  assert not TwoEnum('{{anything}}').bind(anything='Three').check().ok()
+
+
+def test_two_part_enum_constructors():
+  Numbers = Enum('Numbers', ('One', 'Two', 'Three'))
+  Dogs = Enum('Dogs', ('Pug', 'Pit bull'))
+
+  assert not Dogs('Pit {{what}}').check().ok()
+  assert not Dogs('Pit {{what}}').bind(what='frank').check().ok()
+  assert Dogs('Pit {{what}}').bind(what = 'bull').check().ok()
+
+
+def test_enum_serdes():
+  pass
