@@ -204,7 +204,8 @@ class EnumContainer(SimpleObject):
     stringish = String(value)
     _, refs = stringish.interpolate()
     if not refs and value not in self.VALUES:
-      raise ValueError('%s only accepts the following values: ' % ', '.join(self.VALUES))
+      raise ValueError('%s only accepts the following values: %s' % (
+          self.__class__.__name__, ', '.join(self.VALUES)))
     super(EnumContainer, self).__init__(value)
 
   @classmethod
