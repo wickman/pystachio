@@ -15,6 +15,7 @@ def unicodey(s):
   else:
     return s
 
+
 def test_bad_inputs():
   for typ in Float, Integer, String, Boolean:
     with pytest.raises(TypeError):
@@ -30,6 +31,7 @@ def test_bad_inputs():
       with pytest.raises(SimpleObject.CoercionError):
         '%s' % typ(inp)
 
+
 def test_string_constructors():
   good_inputs = [
     '', 'a b c', '{{a}} b {{c}}', '%d', unicodey('unic\u215bde should work too, yo!'),
@@ -37,7 +39,7 @@ def test_string_constructors():
   ]
 
   for input in good_inputs:
-    '%s' % String(input)
+    str(String(input))
     repr(String(input))
 
 
@@ -47,10 +49,12 @@ def test_float_constructors():
 
   for input in bad_inputs:
     with pytest.raises(SimpleObject.CoercionError):
-      '%s' % Float(input)
+      str(Float(input))
+    with pytest.raises(SimpleObject.CoercionError):
+      repr(Float(input))
 
   for input in good_inputs:
-    '%s' % Float(input)
+    str(Float(input))
     repr(Float(input))
 
   assert Float(unicodey(' {{herp}}.{{derp}} ')) % {'herp': 1, 'derp': '2e3'} == Float(1.2e3)
@@ -64,10 +68,12 @@ def test_integer_constructors():
 
   for input in bad_inputs:
     with pytest.raises(SimpleObject.CoercionError):
-      '%s' % Integer(input)
+      str(Integer(input))
+    with pytest.raises(SimpleObject.CoercionError):
+      repr(Integer(input))
 
   for input in good_inputs:
-    '%s' % Integer(input)
+    str(Integer(input))
     repr(Integer(input))
 
   assert Integer(123).check().ok()
@@ -81,10 +87,12 @@ def test_boolean_constructors():
 
   for input in bad_inputs:
     with pytest.raises(SimpleObject.CoercionError):
-      '%s' % Boolean(input)
+      str(Boolean(input))
+    with pytest.raises(SimpleObject.CoercionError):
+      repr(Boolean(input))
 
   for input in good_inputs:
-    '%s' % Boolean(input)
+    str(Boolean(input))
     repr(Boolean(input))
 
   assert Boolean(0) == Boolean(False)
