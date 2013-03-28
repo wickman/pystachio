@@ -12,6 +12,7 @@ from pystachio.typing import (
   TypeFactory,
   TypeMetaclass)
 
+
 class ListFactory(TypeFactory):
   PROVIDES = 'List'
 

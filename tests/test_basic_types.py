@@ -1,6 +1,7 @@
 import pytest
 from pystachio.basic import (
     Boolean,
+    Enum,
     Float,
     Integer,
     SimpleObject,
@@ -81,8 +82,8 @@ def test_integer_constructors():
 
 
 def test_boolean_constructors():
-  bad_inputs = ['', 'a b c', unicodey('a b c'), unicodey(''), '1e5']
-  good_inputs = [unicodey('{{foo}}'), -1, 0, 1, 2, 'true', 'false', True, False]
+  bad_inputs = ['', 'a b c', unicodey('a b c'), unicodey(''), '1e5', ' 0']
+  good_inputs = [unicodey('{{foo}}'), -1, 0, 1, 2, 'true', 'false', '0', '1', True, False]
 
   for input in bad_inputs:
     with pytest.raises(SimpleObject.CoercionError):
@@ -94,6 +95,13 @@ def test_boolean_constructors():
     str(Boolean(input))
     repr(Boolean(input))
 
+  assert Boolean(0) == Boolean(False)
+  assert Boolean(0) != Boolean(True)
+  assert Boolean(1) == Boolean(True)
+  assert Boolean(1) != Boolean(False)
+  assert Boolean("0") == Boolean(False)
+  assert Boolean("1") == Boolean(True)
+  assert not Boolean("2").check().ok()
   assert Boolean(123).check().ok()
   assert Boolean('true').check().ok()
   assert Boolean('false').check().ok()
@@ -143,3 +151,37 @@ def test_hash():
   assert String("baz") not in map
   assert Boolean('false') not in map
   assert Boolean('true') in map
+
+
+def test_N_part_enum_constructors():
+  EmptyEnum = Enum()
+  EmptyEnum('{{should_work}}')
+  with pytest.raises(ValueError):
+    repr(EmptyEnum('Anything'))
+
+  OneEnum = Enum('One')
+  OneEnum('One')
+  with pytest.raises(ValueError):
+    OneEnum('Two')
+
+  TwoEnum = Enum('One', 'Two')
+  for value in ('One', 'Two', '{{anything}}'):
+    TwoEnum(value)
+  for value in ('', 1, None, 'Three'):
+    with pytest.raises(ValueError):
+      TwoEnum(value)
+
+  assert TwoEnum('One').check().ok()
+  assert TwoEnum('Two').check().ok()
+  assert TwoEnum('{{anything}}').bind(anything='One').check().ok()
+  assert not TwoEnum('{{anything}}').check().ok()
+  assert not TwoEnum('{{anything}}').bind(anything='Three').check().ok()
+
+
+def test_two_part_enum_constructors():
+  Numbers = Enum('Numbers', ('One', 'Two', 'Three'))
+  Dogs = Enum('Dogs', ('Pug', 'Pit bull'))
+
+  assert not Dogs('Pit {{what}}').check().ok()
+  assert not Dogs('Pit {{what}}').bind(what='frank').check().ok()
+  assert Dogs('Pit {{what}}').bind(what='bull').check().ok()

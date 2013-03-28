@@ -123,17 +123,19 @@ Schemas wouldn't be terribly useful without the ability to be hierarchical:
 
 ## The type system ##
 
-There are three basic types, two basic container types and then the `Struct` type.
+There are five basic types, two basic container types and then the `Struct` type.
 
 ### Basic Types ###
 
-There are three basic types: the `String`, `Integer`, and `Float` types.  They behave mostly as expected:
+There are five basic types: `String`, `Integer`, `Float`, `Boolean` and `Enum`.  The first four behave as expected:
 
     >>> Float(1.0).check()
     TypeCheck(OK)
     >>> String("1.0").check()
     TypeCheck(OK)
     >>> Integer(1).check()
+    TypeCheck(OK)
+    >>> Boolean(False).check()
     TypeCheck(OK)
 
 They also make a best effort to coerce into the appropriate type:
@@ -144,6 +146,8 @@ They also make a best effort to coerce into the appropriate type:
     String(1.0)
     >>> Integer("1")
     Integer(1)
+    >>> Boolean("true")
+    Boolean(True)
 
 Though the same gotchas apply as standard coercion in Python:
 
@@ -151,6 +155,31 @@ Though the same gotchas apply as standard coercion in Python:
     ValueError: invalid literal for int() with base 10: '1.0'
     >>> Integer("1.0")
     pystachio.objects.CoercionError: Cannot coerce '1.0' to Integer
+
+with the exception of `Boolean` which accepts "false" as falsy.
+
+
+Enum is a factory that produces new enumeration types:
+
+    >>> Enum('Red', 'Green', 'Blue')
+    <class 'pystachio.typing.Enum_Red_Green_Blue'>
+    >>> Color = Enum('Red', 'Green', 'Blue')
+    >>> Color('Red')
+    Enum_Red_Green_Blue(Red)
+    >>> Color('Brown')
+    Traceback (most recent call last):
+      File "<console>", line 1, in <module>
+      File "/Users/wickman/clients/pystachio/pystachio/basic.py", line 208, in __init__
+        self.__class__.__name__, ', '.join(self.VALUES)))
+    ValueError: Enum_Red_Green_Blue only accepts the following values: Red, Green, Blue
+
+Enums can also be constructed using `namedtuple` syntax to generate more illustrative class names:
+
+    >>> Enum('Color', ('Red', 'Green', 'Blue'))
+    <class 'pystachio.typing.Color'>
+    >>> Color = Enum('Color', ('Red', 'Green', 'Blue'))
+    >>> Color('Red')
+    Color(Red)
 
 
 ### Container types ###

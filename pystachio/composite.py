@@ -12,9 +12,11 @@ from pystachio.typing import (
   TypeFactory,
   TypeMetaclass)
 
+
 class Empty(object):
   """The Empty sentinel representing an unspecified field."""
   pass
+
 
 class TypeSignature(object):
   """
@@ -237,7 +239,8 @@ class Structural(Object, Type, Namable):
     si, _ = self.interpolate()
     return '%s(%s)' % (
       self.__class__.__name__,
-      ', '.join('%s=%s' % (key, val) for key, val in si._schema_data.items() if val is not Empty)
+      (',\n%s' % (' ' * (len(self.__class__.__name__) + 1))).join(
+          '%s=%s' % (key, val) for key, val in si._schema_data.items() if val is not Empty)
     )
 
   def __getattr__(self, attr):
