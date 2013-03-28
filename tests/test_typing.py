@@ -6,7 +6,7 @@ def ref(address):
 
 
 def test_basic_schemas():
-  BASIC_TYPES = (Integer, Float, String)
+  BASIC_TYPES = (Integer, Float, String, Boolean)
 
   for typ in BASIC_TYPES:
     assert TypeFactory.new({}, *typ.serialize_type()) == typ
@@ -20,7 +20,7 @@ def test_basic_schemas():
 
 
 def test_complex_schemas():
-  BASIC_TYPES = (Integer, Float, String)
+  BASIC_TYPES = (Integer, Float, String, Boolean)
   LIST_TYPES = [List(bt) for bt in BASIC_TYPES]
   MAP_TYPES = []
   for typ1 in BASIC_TYPES:
@@ -38,12 +38,12 @@ def test_composite_schemas_are_not_lossy():
     required_attribute = Required(Integer)
     optional_attribute = Float
     default_attribute  = Default(String, "Hello")
-    required_list      = Required(List(String))
+    required_list      = Required(List(Boolean))
     optional_list      = List(Integer)
     default_list       = Default(List(Float), [1.0, Float(2.0)])
     required_map       = Required(Map(String, Integer))
     optional_map       = Map(Integer, Float)
-    default_map        = Default(Map(Float, Integer), {1.0: 2, 2.0: 3})
+    default_map        = Default(Map(Boolean, Integer), {True: 2, False: 3})
 
   class M1(Struct):
     required_attribute = Required(Integer)
@@ -53,7 +53,7 @@ def test_composite_schemas_are_not_lossy():
     optional_composite = C1
     default_composite  = Default(C1, C1(required_attribute = 1, required_list = ["a", "b"]))
 
-  BASIC_TYPES = [Integer, Float, String, C1, M1]
+  BASIC_TYPES = [Integer, Float, String, Boolean, C1, M1]
   LIST_TYPES = [List(bt) for bt in BASIC_TYPES]
   MAP_TYPES = []
   for typ1 in (Integer, C1, M1):

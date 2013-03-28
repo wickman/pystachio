@@ -163,3 +163,37 @@ class FloatFactory(TypeFactory):
   @staticmethod
   def create(type_dict, *type_parameters):
     return Float
+
+
+class Boolean(SimpleObject):
+  @classmethod
+  def checker(cls, obj):
+    assert isinstance(obj, Boolean)
+    if isinstance(obj._value, bool):
+      return TypeCheck.success()
+    else:
+      return TypeCheck.failure("%s not a boolean" % repr(obj._value))
+
+  @classmethod
+  def coerce(cls, value):
+    ACCEPTED_SOURCE_TYPES = (bool,) + Compatibility.numeric + Compatibility.stringy
+    if not isinstance(value, ACCEPTED_SOURCE_TYPES):
+      raise cls.CoercionError(value, cls)
+
+    if isinstance(value, bool):
+      return value
+    elif isinstance(value, Compatibility.stringy):
+      if value.lower() == "true":
+        return True
+      elif value.lower() == "false":
+        return False
+      else:
+        raise cls.CoercionError(value, cls)
+    else:
+      return bool(value)
+
+class BooleanFactory(TypeFactory):
+  PROVIDES = 'Boolean'
+  @staticmethod
+  def create(type_dict, *type_parameters):
+    return Boolean

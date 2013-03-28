@@ -1,5 +1,5 @@
 __author__ = 'Brian Wickman'
-__version__ = '0.5.2'
+__version__ = '0.6.0'
 __license__ = 'MIT'
 
 import sys
@@ -16,6 +16,7 @@ from pystachio.parsing import MustacheParser
 from pystachio.naming import Namable, Ref
 
 from pystachio.basic import (
+  Boolean,
   Float,
   Integer,
   String)
