@@ -184,4 +184,4 @@ def test_two_part_enum_constructors():
 
   assert not Dogs('Pit {{what}}').check().ok()
   assert not Dogs('Pit {{what}}').bind(what='frank').check().ok()
-  assert Dogs('Pit {{what}}').bind(what = 'bull').check().ok()
+  assert Dogs('Pit {{what}}').bind(what='bull').check().ok()
