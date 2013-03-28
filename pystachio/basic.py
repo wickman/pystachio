@@ -3,7 +3,7 @@ import copy
 from pystachio.base import Object
 from pystachio.compatibility import Compatibility
 from pystachio.parsing import MustacheParser
-from pystachio.typing import Type, TypeFactory, TypeCheck
+from pystachio.typing import Type, TypeFactory, TypeMetaclass, TypeCheck
 
 
 class SimpleObject(Object, Type):
@@ -183,9 +183,9 @@ class Boolean(SimpleObject):
     if isinstance(value, bool):
       return value
     elif isinstance(value, Compatibility.stringy):
-      if value.lower() == "true":
+      if value.lower() in ("true", "1"):
         return True
-      elif value.lower() == "false":
+      elif value.lower() in ("false", "0"):
         return False
       else:
         raise cls.CoercionError(value, cls)
@@ -197,3 +197,62 @@ class BooleanFactory(TypeFactory):
   @staticmethod
   def create(type_dict, *type_parameters):
     return Boolean
+
+
+class EnumContainer(SimpleObject):
+  def __init__(self, value):
+    stringish = String(value)
+    _, refs = stringish.interpolate()
+    if not refs and value not in self.VALUES:
+      raise ValueError('%s only accepts the following values: %s' % (
+          self.__class__.__name__, ', '.join(self.VALUES)))
+    super(EnumContainer, self).__init__(value)
+
+  @classmethod
+  def checker(cls, obj):
+    assert isinstance(obj, EnumContainer)
+    if isinstance(obj._value, Compatibility.stringy) and obj._value in cls.VALUES:
+      return TypeCheck.success()
+    else:
+      return TypeCheck.failure("%s not in the enumeration (%s)" % repr(obj._value),
+        ', '.join(cls.VALUES))
+
+  @classmethod
+  def coerce(cls, value):
+    if not isinstance(value, Compatibility.stringy) or value not in cls.VALUES:
+      raise cls.CoercionError(value, cls, '%s is not one of %s' % (
+        value, ', '.join(cls.VALUES)))
+    return str(value) if Compatibility.PY3 else unicode(value)
+
+  @classmethod
+  def type_factory(cls):
+    return 'Enum'
+
+  @classmethod
+  def type_parameters(cls):
+    return (cls.__name__, cls.VALUES)
+
+
+class EnumFactory(TypeFactory):
+  PROVIDES = 'Enum'
+
+  @staticmethod
+  def create(type_dict, *type_parameters):
+    """
+      EnumFactory.create(*type_parameters) expects:
+        enumeration name, (enumeration values)
+    """
+    name, values = type_parameters
+    assert isinstance(values, (list, tuple))
+    for value in values:
+      assert isinstance(value, Compatibility.stringy)
+    return TypeMetaclass(str(name), (EnumContainer,), { 'VALUES': values })
+
+
+def Enum(*stuff):
+  # TODO(wickman) Check input
+  if len(stuff) == 2 and isinstance(stuff[0], Compatibility.stringy) and isinstance(stuff[1], (list, tuple)):
+    name, values = stuff
+    return TypeFactory.new({}, EnumFactory.PROVIDES, name, values)
+  else:
+    return TypeFactory.new({}, EnumFactory.PROVIDES, 'Enum_' + '_'.join(stuff), stuff)

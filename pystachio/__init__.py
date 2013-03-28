@@ -1,5 +1,5 @@
 __author__ = 'Brian Wickman'
-__version__ = '0.6.0'
+__version__ = '0.6.1'
 __license__ = 'MIT'
 
 import sys
@@ -17,6 +17,7 @@ from pystachio.naming import Namable, Ref
 
 from pystachio.basic import (
   Boolean,
+  Enum,
   Float,
   Integer,
   String)

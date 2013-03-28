@@ -104,10 +104,10 @@ class Object(object):
   """
     Object base class, encapsulating a set of variable bindings scoped to this object.
   """
-
   class CoercionError(ValueError):
-    def __init__(self, src, dst):
-      ValueError.__init__(self, "Cannot coerce '%s' to %s" % (src, dst.__name__))
+    def __init__(self, src, dst, message=None):
+      error = "Cannot coerce '%s' to %s" % (src, dst.__name__)
+      ValueError.__init__(self, '%s: %s' % (error, message) if message else error)
 
   class InterpolationError(Exception): pass
 

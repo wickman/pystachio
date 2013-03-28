@@ -23,11 +23,12 @@ def test_complex_schemas():
   BASIC_TYPES = (Integer, Float, String, Boolean)
   LIST_TYPES = [List(bt) for bt in BASIC_TYPES]
   MAP_TYPES = []
+  ENUM_TYPES = [Enum(), Enum('Red', 'Green', 'Blue'), Enum('Animals', ('Dog', 'Cat'))]
   for typ1 in BASIC_TYPES:
     for typ2 in BASIC_TYPES:
       MAP_TYPES.append(Map(typ1,typ2))
-  for mt1 in (BASIC_TYPES, LIST_TYPES, MAP_TYPES):
-    for mt2 in (BASIC_TYPES, LIST_TYPES, MAP_TYPES):
+  for mt1 in (BASIC_TYPES, LIST_TYPES, MAP_TYPES, ENUM_TYPES):
+    for mt2 in (BASIC_TYPES, LIST_TYPES, MAP_TYPES, ENUM_TYPES):
       for typ1 in mt1:
         for typ2 in mt2:
           assert isinstance(TypeFactory.new({}, *Map(typ1, typ2).serialize_type())({}), Map(typ1, typ2))
