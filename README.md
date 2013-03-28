@@ -156,6 +156,9 @@ Though the same gotchas apply as standard coercion in Python:
     >>> Integer("1.0")
     pystachio.objects.CoercionError: Cannot coerce '1.0' to Integer
 
+with the exception of `Boolean` which accepts "false" as falsy.
+
+
 Enum is a factory that produces new enumeration types:
 
     >>> Enum('Red', 'Green', 'Blue')
