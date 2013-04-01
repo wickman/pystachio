@@ -7,8 +7,10 @@ from pystachio.basic import *
 from pystachio.container import List, Map
 from pystachio.composite import Struct, Default
 
+
 def ref(address):
   return Ref.from_address(address)
+
 
 def test_basic_lists():
   assert List(Integer)([]).check().ok()
@@ -20,6 +22,9 @@ def test_basic_lists():
   with pytest.raises(ValueError):
     List(Integer)({'not': 'a', 'list': 'type'})
   repr(List(Integer)([1, '{{two}}']))
+  assert Integer(3) in List(Integer)([0, '1', 2, '3'])
+  assert 2 in List(Integer)(['{{wat}}']).bind(wat = 2)
+
 
 def test_basic_scoping():
   i = Integer('{{intvalue}}')
@@ -38,6 +43,7 @@ def test_basic_scoping():
   assert lst.in_scope(intvalue = 3).find(two) == Integer(2)
   assert lst.in_scope(intvalue = 3).find(three) == Integer(3)
 
+
 def test_iteration():
   li = List(Integer)([1,2,3])
   liter = iter(li)
@@ -49,6 +55,7 @@ def test_iteration():
   li = List(Integer)([])
   with pytest.raises(StopIteration):
     next(iter(li))
+
 
 def test_indexing():
   li = List(Integer)([1,2,3])
@@ -66,6 +73,7 @@ def test_indexing():
   with pytest.raises(IndexError):
     li[10]
 
+
 def test_list_scoping():
   assert List(Integer)([1, "{{wut}}"]).interpolate() == (
     List(Integer)([Integer(1), Integer('{{wut}}')]), [ref('wut')])
@@ -73,6 +81,7 @@ def test_list_scoping():
     List(Integer)([Integer(1), Integer(23)]), [])
   assert List(Integer)([1, Integer("{{wut}}").bind(wut = 24)]).bind(wut = 23).interpolate() == (
     List(Integer)([Integer(1), Integer(24)]), [])
+
 
 def test_list_find():
   ls = List(String)(['a', 'b', 'c'])
@@ -86,8 +95,10 @@ def test_list_find():
   with pytest.raises(Namable.Unnamable):
     ls.find(ref('[1].foo'))
 
+
 def test_equals():
   assert List(Integer)([1, "{{wut}}"]).bind(wut=23) == List(Integer)([1, 23])
+
 
 def test_basic_maps():
   assert Map(String,Integer)({}).check().ok()
@@ -106,6 +117,7 @@ def test_basic_maps():
       Map(String,Integer)(value)
   repr(Map(String,Integer)(('a', 1), ('b', 2)))
 
+
 def test_map_find():
   msi = Map(String,Integer)({'a':1})
   assert msi.find(ref('[a]')) == Integer(1)
@@ -120,6 +132,7 @@ def test_map_find():
   assert mii.find(ref('[3]')) == String('foo')
   assert mii.find(ref('[5]')) == String('bar')
 
+
 def test_map_iteration():
   mi = Map(String,Integer)({'a': 1, 'b': 2})
   miter = iter(mi)
@@ -131,6 +144,15 @@ def test_map_iteration():
   mi = Map(String,Integer)({})
   with pytest.raises(StopIteration):
     next(iter(mi))
+
+
+def test_map_unkeyable():
+  m = Map(Integer, String)({'{{wat}}': 'hello'})
+  assert m.bind(wat = 3)[Integer(3)] == String('hello')
+  assert m.bind(wat = 3)[3] == String('hello')
+  with pytest.raises(KeyError):
+    m['wat']
+
 
 def test_map_idioms():
   mi = Map(String,Integer)({'a': 1, 'b': 2})
@@ -145,6 +167,7 @@ def test_map_idioms():
       mi[key]
     assert key not in mi
 
+
 @pytest.mark.xfail(reason="Pre-coercion checks need to be improved.")
 def test_map_keys_that_should_improve():
   mi = Map(String, Integer)()
@@ -152,6 +175,7 @@ def test_map_keys_that_should_improve():
     with pytest.raises(KeyError):
       mi[key]
     assert key not in mi
+
 
 def test_hashing():
   map = {
@@ -163,6 +187,7 @@ def test_hashing():
   assert List(Integer)([3,2,1]) not in map
   assert Map(String,Integer)({'b': 2, 'a': 1}) in map
   assert Map(String,Integer)({'a': 2, 'b': 1}) not in map
+
 
 def test_load_json():
   class Process(Struct):
@@ -196,7 +221,8 @@ def test_load_json():
       Process.json_loads(js, strict=True)
 
   for js in FAIL:
-    assert not Process.json_loads(js, strict=False).check().ok()
+    with pytest.raises(ValueError):
+      Process.json_loads(js, strict=False)
 
   with pytest.raises(AttributeError):
     Process.json_loads('{"name": [1,2], "cmdline": "bitchin", "extra_schema": "foo"}', strict=True)

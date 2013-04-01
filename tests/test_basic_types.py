@@ -101,8 +101,6 @@ def test_boolean_constructors():
   assert Boolean(1) != Boolean(False)
   assert Boolean("0") == Boolean(False)
   assert Boolean("1") == Boolean(True)
-  assert not Boolean("2").check().ok()
-  assert Boolean(123).check().ok()
   assert Boolean('true').check().ok()
   assert Boolean('false').check().ok()
   assert Boolean(True).check().ok()

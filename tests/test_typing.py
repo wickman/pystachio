@@ -52,7 +52,7 @@ def test_composite_schemas_are_not_lossy():
     default_attribute  = Default(String, "Hello")
     required_composite = Required(C1)
     optional_composite = C1
-    default_composite  = Default(C1, C1(required_attribute = 1, required_list = ["a", "b"]))
+    default_composite  = Default(C1, C1(required_attribute = 1, required_list = ["true", False]))
 
   BASIC_TYPES = [Integer, Float, String, Boolean, C1, M1]
   LIST_TYPES = [List(bt) for bt in BASIC_TYPES]

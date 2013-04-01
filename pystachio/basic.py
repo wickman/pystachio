@@ -1,5 +1,6 @@
 from .base import Object
 from .compatibility import Compatibility
+from .naming import Ref
 from .parsing import MustacheParser
 from .typing import (
     Type,
@@ -15,7 +16,14 @@ class SimpleObject(Object, Type):
   __slots__ = ('_value',)
 
   def __init__(self, value):
-    self._value = value
+    try:
+      self._value = self.coerce(value)
+    except self.CoercionError:
+      if not isinstance(value, Compatibility.stringy):
+        raise
+      if not any(isinstance(split, Ref) for split in MustacheParser.split(value)):
+        raise
+      self._value = value
     super(SimpleObject, self).__init__()
 
   def get(self):
@@ -106,7 +114,6 @@ class String(SimpleObject):
       raise cls.CoercionError(value, cls)
     return str(value) if Compatibility.PY3 else unicode(value)
 
-
 class StringFactory(TypeFactory):
   PROVIDES = 'String'
   @staticmethod
@@ -132,7 +139,6 @@ class Integer(SimpleObject):
       return int(value)
     except ValueError:
       raise cls.CoercionError(value, cls)
-
 
 class IntegerFactory(TypeFactory):
   PROVIDES = 'Integer'
@@ -234,7 +240,6 @@ class EnumContainer(SimpleObject):
   def type_parameters(cls):
     return (cls.__name__, cls.VALUES)
 
-
 class EnumFactory(TypeFactory):
   PROVIDES = 'Enum'
 
@@ -249,7 +254,6 @@ class EnumFactory(TypeFactory):
     for value in values:
       assert isinstance(value, Compatibility.stringy)
     return TypeMetaclass(str(name), (EnumContainer,), { 'VALUES': values })
-
 
 def Enum(*stuff):
   # TODO(wickman) Check input

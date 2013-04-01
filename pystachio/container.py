@@ -216,7 +216,7 @@ class MapContainer(Object, Namable, Type):
       try:
         key = self.KEYTYPE(key)
       except ValueError:
-        raise KeyError("%s is not coercable to %s" % self.KEYTYPE.__name__)
+        raise KeyError
     # TODO(wickman) The performance of this should be improved.
     si, _ = self.interpolate()
     for tup in si._map:
