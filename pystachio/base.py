@@ -7,8 +7,6 @@ from .parsing import MustacheParser
 from .typing import TypeCheck
 
 """
-
-
 New model:
 
 Standardize on ._value
@@ -18,13 +16,6 @@ classmethod .unapply(value)     => frozen/reified version of class
             .copy()             => copy of this object
 
 ==> consistent __init__ method across all objects
-
-
-.unapply can raise:
-  CoercionError
-  UndefinedRefsError
-
-
 """
 
 class Environment(Namable):

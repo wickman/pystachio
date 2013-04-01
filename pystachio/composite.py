@@ -147,7 +147,41 @@ class StructMetaclass(type):
       return type.__new__(mcs, name, parents, attributes)
 
 
-StructMetaclassWrapper = StructMetaclass('StructMetaclassWrapper', (object,), {})
+class FrozenStructural(frozendict):
+  def __init__(self, name, typemap, *args, **kw):
+    self.__name = name
+    self.__typemap = typemap
+    super(FrozenStructural, self).__init__(*args, **kw)
+
+  def __key(self):
+    return tuple((k, self[k]) for k in sorted(self))
+
+  def __getattr__(self, attribute):
+    if attribute.startswith('has_'):
+      attribute = attribute[4:]
+      if attribute not in self.__typemap:
+        return lambda: False
+      else:
+        return lambda: attribute in self
+    if attribute not in self.__typemap:
+      raise AttributeError("type object '%s' has no attribute '%s'" % (
+        self.__class__.__name__, attribute))
+    return self.get(attribute, None)
+
+  def __hash__(self):
+    return hash(self.__key())
+
+  def __eq__(self, other):
+    return self.__key() == other.__key()
+
+  def __repr__(self):
+    return '%s(%s)' % (
+      self.__name,
+      (',\n%s' % (' ' * (len(self.__name) + 1))).join(
+          '%s=%s' % (key, val) for key, val in self.items())
+    )
+
+
 class Structural(Object, Type, Namable):
   """A Structural base type for composite objects."""
   __slots__ = ('_value',)
@@ -192,7 +226,8 @@ class Structural(Object, Type, Namable):
 
   @classmethod
   def unapply(cls, value):
-    return frozendict((k, v.get()) for k, v in value.items() if v is not Empty)
+    return FrozenStructural('Frozen%s' % cls.__name__, cls.TYPEMAP,
+      ((k, v.get()) for (k, v) in value.items() if v is not Empty))
 
   def __call__(self, **kw):
     new_self = self.copy()
@@ -247,16 +282,16 @@ class Structural(Object, Type, Namable):
 
   def interpolate(self):
     unbound = set()
-    interpolated_schema_data = {}
+    interpolated_value = {}
     scopes = self.scopes()
     for key, value in self._value.items():
       if value is Empty:
-        interpolated_schema_data[key] = Empty
+        interpolated_value[key] = Empty
       else:
         vinterp, vunbound = value.in_scope(*scopes).interpolate()
         unbound.update(vunbound)
-        interpolated_schema_data[key] = vinterp
-    return self.__class__(**interpolated_schema_data), list(unbound)
+        interpolated_value[key] = vinterp
+    return self.__class__(**interpolated_value), list(unbound)
 
   def interpolate_key(self, attribute):
     if self._value[attribute] is Empty:
@@ -314,6 +349,7 @@ class Structural(Object, Type, Namable):
           return namable.in_scope(*self.scopes()).find(ref.rest())
 
 
+StructMetaclassWrapper = StructMetaclass('StructMetaclassWrapper', (object,), {})
 class Struct(StructMetaclassWrapper, Structural):
   """
     Schema-based composite objects, e.g.
