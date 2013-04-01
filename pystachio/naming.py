@@ -61,6 +61,10 @@ class Ref(object):
   _VALID_START = re.compile(r'[a-zA-Z_]')
   _COMPONENT_SEPARATOR = '.'
 
+  class Error(Exception): pass
+  class InvalidRefError(Error): pass
+  class UnnamableError(Error): pass
+
   class Component(object):
     def __init__(self, value):
       self._value = value
@@ -91,29 +95,50 @@ class Ref(object):
     def __repr__(self):
       return '.%s' % self._value
 
-  class InvalidRefError(Exception): pass
-  class UnnamableError(Exception): pass
-
-  @staticmethod
-  def wrap(value):
-    if isinstance(value, Ref):
+  @classmethod
+  def wrap(cls, value):
+    if isinstance(value, cls):
       return value
     else:
-      return Ref.from_address(value)
+      return cls.from_address(value)
 
-  @staticmethod
-  def from_address(address):
+  @classmethod
+  def from_address(cls, address):
     components = []
     if not address or not isinstance(address, Compatibility.stringy):
-      raise Ref.InvalidRefError('Invalid address: %s' % repr(address))
+      raise cls.InvalidRefError('Invalid address: %s' % repr(address))
     if not (address.startswith('[') or address.startswith('.')):
-      if Ref._VALID_START.match(address[0]):
-        components = Ref.split_components('.' + address)
+      if cls._VALID_START.match(address[0]):
+        components = cls.split_components('.' + address)
       else:
-        raise Ref.InvalidRefError(address)
+        raise cls.InvalidRefError(address)
     else:
-      components = Ref.split_components(address)
-    return Ref(components)
+      components = cls.split_components(address)
+    return cls(components)
+
+  @classmethod
+  def subscope(cls, ref1, ref2):
+    rc = ref1.components()
+    sc = ref2.components()
+    if rc == sc[0 : len(rc)]:
+      if len(sc) > len(rc):
+        return cls(sc[len(rc):])
+
+  @classmethod
+  def split_components(cls, address):
+    def map_to_namable(component):
+      if (component.startswith('[') and component.endswith(']') and
+          cls.Index.RE.match(component[1:-1])):
+        return cls.Index(component[1:-1])
+      elif component.startswith('.') and cls.Dereference.RE.match(component[1:]):
+        return cls.Dereference(component[1:])
+      else:
+        raise cls.InvalidRefError('Address %s has bad component %s' % (address, component))
+    splits = cls._REF_RE.split(address)
+    if any(splits[0::2]):
+      raise cls.InvalidRefError('Badly formed address %s' % address)
+    splits = splits[1::2]
+    return [map_to_namable(spl) for spl in splits]
 
   def __init__(self, components):
     self._components = components
@@ -141,32 +166,8 @@ class Ref(object):
     oc = other.components()
     return Ref(sc + oc)
 
-  @staticmethod
-  def subscope(ref1, ref2):
-    rc = ref1.components()
-    sc = ref2.components()
-    if rc == sc[0:len(rc)]:
-      if len(sc) > len(rc):
-        return Ref(sc[len(rc):])
-
   def scoped_to(self, ref):
     return Ref.subscope(self, ref)
-
-  @staticmethod
-  def split_components(address):
-    def map_to_namable(component):
-      if (component.startswith('[') and component.endswith(']') and
-          Ref.Index.RE.match(component[1:-1])):
-        return Ref.Index(component[1:-1])
-      elif component.startswith('.') and Ref.Dereference.RE.match(component[1:]):
-        return Ref.Dereference(component[1:])
-      else:
-        raise Ref.InvalidRefError('Address %s has bad component %s' % (address, component))
-    splits = Ref._REF_RE.split(address)
-    if any(splits[0::2]):
-      raise Ref.InvalidRefError('Badly formed address %s' % address)
-    splits = splits[1::2]
-    return [map_to_namable(spl) for spl in splits]
 
   def address(self):
     joined = ''.join(str(comp) for comp in self._components)
@@ -184,7 +185,6 @@ class Ref(object):
   def __eq__(self, other):
     return self.components() == other.components()
 
-  @staticmethod
   def compare(self, other):
     if len(self.components()) < len(other.components()):
       return -1
@@ -194,10 +194,10 @@ class Ref(object):
       return (self.components() > other.components()) - (self.components() < other.components())
 
   def __lt__(self, other):
-    return Ref.compare(self, other) == -1
+    return self.compare(other) == -1
 
   def __gt__(self, other):
-    return Ref.compare(self, other) == 1
+    return self.compare(other) == 1
 
   def __hash__(self):
     return hash(str(self))

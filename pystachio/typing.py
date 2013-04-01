@@ -85,8 +85,8 @@ class TypeFactory(TypeFactoryClass):
   def wrapper(factory):
     assert issubclass(factory, TypeFactory)
     def wrapper_function(*type_parameters):
-      return TypeFactory.new({}, factory.PROVIDES, *tuple(
-        [typ.serialize_type() for typ in type_parameters]))
+      return TypeFactory.new({}, factory.PROVIDES,
+          *tuple(typ.serialize_type() for typ in type_parameters))
     return wrapper_function
 
   @staticmethod

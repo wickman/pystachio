@@ -69,7 +69,7 @@ def test_defaults():
     cpu = Default(Float, 1.0)
     ram = Integer
   assert Resources() == Resources(cpu = 1.0)
-  assert Resources(cpu = 2.0)._schema_data['cpu'] == Float(2.0)
+  assert Resources(cpu = 2.0)._value['cpu'] == Float(2.0)
 
   class Process(Struct):
     name = String

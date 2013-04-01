@@ -34,17 +34,23 @@ class ListContainer(Object, Namable, Type):
     set to the contained type.  If you want a concrete List type, see the
     List() function.
   """
-  __slots__ = ('_values',)
+  __slots__ = ('_value',)
 
-  def __init__(self, vals):
-    self._values = self._coerce_values(copy.copy(vals))
-    super(ListContainer, self).__init__()
+  @classmethod
+  def _coerce_values(cls, values):
+    if not ListContainer.isiterable(values):
+      raise ValueError("ListContainer expects an iterable, got %s" % repr(values))
+    def coerced(value):
+      return value if isinstance(value, cls.TYPE) else cls.TYPE(value)
+    return tuple([coerced(v) for v in values])
 
-  def get(self):
-    return tuple(v.get() for v in self._values)
+  @classmethod
+  def apply(cls, values):
+    return cls._coerce_values(copy.copy(values))
 
-  def dup(self):
-    return self.__class__(self._values)
+  @classmethod
+  def unapply(cls, value):
+    return tuple(v.get() for v in value)
 
   def __hash__(self):
     return hash(self.get())
@@ -52,20 +58,20 @@ class ListContainer(Object, Namable, Type):
   def __repr__(self):
     si, _ = self.interpolate()
     return '%s(%s)' % (self.__class__.__name__,
-      ', '.join(str(v) if Compatibility.PY3 else unicode(v) for v in si._values))
+      ', '.join(str(v) if Compatibility.PY3 else unicode(v) for v in si._value))
 
   def __iter__(self):
     si, _ = self.interpolate()
-    return iter(si._values)
+    return iter(si._value)
 
   def __getitem__(self, index_or_slice):
     si, _ = self.interpolate()
-    return si._values[index_or_slice]
+    return si._value[index_or_slice]
 
   def __contains__(self, item):
     si, _ = self.interpolate()
     if isinstance(item, self.TYPE):
-      return item in si._values
+      return item in si._value
     else:
       return item in si.get()
 
@@ -74,22 +80,17 @@ class ListContainer(Object, Namable, Type):
     if self.TYPE.serialize_type() != other.TYPE.serialize_type(): return False
     si, _ = self.interpolate()
     oi, _ = other.interpolate()
-    return si._values == oi._values
+    return si._value == oi._value
 
   @staticmethod
   def isiterable(values):
     return isinstance(values, Sequence) and not isinstance(values, Compatibility.stringy)
 
-  def _coerce_values(self, values):
-    if not ListContainer.isiterable(values):
-      raise ValueError("ListContainer expects an iterable, got %s" % repr(values))
-    def coerced(value):
-      return value if isinstance(value, self.TYPE) else self.TYPE(value)
-    return tuple([coerced(v) for v in values])
+
 
   def check(self):
-    assert ListContainer.isiterable(self._values)
-    for element in self._values:
+    assert ListContainer.isiterable(self._value)
+    for element in self._value:
       assert isinstance(element, self.TYPE)
       typecheck = element.in_scope(*self.scopes()).check()
       if not typecheck.ok():
@@ -100,7 +101,7 @@ class ListContainer(Object, Namable, Type):
   def interpolate(self):
     unbound = set()
     interpolated = []
-    for element in self._values:
+    for element in self._value:
       einterp, eunbound = element.in_scope(*self.scopes()).interpolate()
       interpolated.append(einterp)
       unbound.update(eunbound)
@@ -113,10 +114,10 @@ class ListContainer(Object, Namable, Type):
       intvalue = int(ref.action().value)
     except ValueError:
       raise Namable.NamingError(self, ref)
-    if len(self._values) <= intvalue:
+    if len(self._value) <= intvalue:
       raise Namable.NotFound(self, ref)
     else:
-      namable = self._values[intvalue]
+      namable = self._value[intvalue]
       if ref.rest().is_empty():
         return namable.in_scope(*self.scopes())
       else:
@@ -173,43 +174,42 @@ class MapContainer(Object, Namable, Type):
     __init__(dict) => translates to list of tuples & sanity checks
     __init__(tuple) => sanity checks
   """
-  __slots__ = ('_map',)
+  __slots__ = ('_value',)
 
-  def __init__(self, *args):
-    """
-      Construct a map.
-
-      Input:
-        sequence of tuples _or_ a dictionary
-    """
-    if len(args) == 1 and isinstance(args[0], Mapping):
-      self._map = self._coerce_map(copy.copy(args[0]))
-    elif all(isinstance(arg, Iterable) and len(arg) == 2 for arg in args):
-      self._map = self._coerce_tuple(args)
-    else:
-      raise ValueError("Unexpected input to MapContainer: %s" % repr(args))
-    super(MapContainer, self).__init__()
-
-  def get(self):
-    return frozendict((k.get(), v.get()) for (k, v) in self._map)
-
-  def _coerce_wrapper(self, key, value):
-    coerced_key = key if isinstance(key, self.KEYTYPE) else self.KEYTYPE(key)
-    coerced_value = value if isinstance(value, self.VALUETYPE) else self.VALUETYPE(value)
+  @classmethod
+  def _coerce_wrapper(cls, key, value):
+    coerced_key = key if isinstance(key, cls.KEYTYPE) else cls.KEYTYPE(key)
+    coerced_value = value if isinstance(value, cls.VALUETYPE) else cls.VALUETYPE(value)
     return (coerced_key, coerced_value)
 
-  def _coerce_map(self, input_map):
-    return tuple(self._coerce_wrapper(key, value) for key, value in input_map.items())
+  @classmethod
+  def _coerce_map(cls, input_map):
+    return tuple(cls._coerce_wrapper(key, value) for key, value in input_map.items())
 
-  def _coerce_tuple(self, input_tuple):
-    return tuple(self._coerce_wrapper(key, value) for key, value in input_tuple)
+  @classmethod
+  def _coerce_tuple(cls, input_tuple):
+    return tuple(cls._coerce_wrapper(key, value) for key, value in input_tuple)
+
+  @classmethod
+  def apply(cls, *args):
+    if len(args) == 1 and isinstance(args[0], Mapping):
+      value = cls._coerce_map(copy.copy(args[0]))
+    elif all(isinstance(arg, Iterable) and len(arg) == 2 for arg in args):
+      value = cls._coerce_tuple(args)
+    else:
+      raise ValueError("Unexpected input to MapContainer: %s" % repr(args))
+    return value
+  
+  @classmethod
+  def unapply(cls, value):
+    return frozendict((k.get(), v.get()) for (k, v) in value)
 
   def __hash__(self):
     return hash(self.get())
 
   def __iter__(self):
     si, _ = self.interpolate()
-    return (t[0] for t in si._map)
+    return (t[0] for t in si._value)
 
   def __getitem__(self, key):
     if not isinstance(key, self.KEYTYPE):
@@ -219,7 +219,7 @@ class MapContainer(Object, Namable, Type):
         raise KeyError
     # TODO(wickman) The performance of this should be improved.
     si, _ = self.interpolate()
-    for tup in si._map:
+    for tup in si._value:
       if key == tup[0]:
         return tup[1]
     raise KeyError("%s not found" % key)
@@ -231,13 +231,10 @@ class MapContainer(Object, Namable, Type):
     except KeyError:
       return False
 
-  def dup(self):
-    return self.__class__(*self._map)
-
   def __repr__(self):
     si, _ = self.interpolate()
     return '%s(%s)' % (self.__class__.__name__,
-      ', '.join('%s => %s' % (key, val) for key, val in si._map))
+      ', '.join('%s => %s' % (key, val) for key, val in si._value))
 
   def __eq__(self, other):
     if not isinstance(other, MapContainer): return False
@@ -245,11 +242,11 @@ class MapContainer(Object, Namable, Type):
     if self.VALUETYPE.serialize_type() != other.VALUETYPE.serialize_type(): return False
     si, _ = self.interpolate()
     oi, _ = other.interpolate()
-    return si._map == oi._map
+    return si._value == oi._value
 
   def check(self):
-    assert isinstance(self._map, tuple)
-    for key, value in self._map:
+    assert isinstance(self._value, tuple)
+    for key, value in self._value:
       assert isinstance(key, self.KEYTYPE)
       assert isinstance(value, self.VALUETYPE)
       keycheck = key.in_scope(*self.scopes()).check()
@@ -265,7 +262,7 @@ class MapContainer(Object, Namable, Type):
   def interpolate(self):
     unbound = set()
     interpolated = []
-    for key, value in self._map:
+    for key, value in self._value:
       kinterp, kunbound = key.in_scope(*self.scopes()).interpolate()
       vinterp, vunbound = value.in_scope(*self.scopes()).interpolate()
       unbound.update(kunbound)
@@ -277,7 +274,7 @@ class MapContainer(Object, Namable, Type):
     if not ref.is_index():
       raise Namable.NamingError(self, ref)
     kvalue = self.KEYTYPE(ref.action().value)
-    for key, namable in self._map:
+    for key, namable in self._value:
       if kvalue == key:
         if ref.rest().is_empty():
           return namable.in_scope(*self.scopes())

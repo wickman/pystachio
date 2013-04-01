@@ -6,6 +6,27 @@ from .naming import Namable, Ref
 from .parsing import MustacheParser
 from .typing import TypeCheck
 
+"""
+
+
+New model:
+
+Standardize on ._value
+
+classmethod .apply(*args, **kw) => value
+classmethod .unapply(value)     => frozen/reified version of class
+            .copy()             => copy of this object
+
+==> consistent __init__ method across all objects
+
+
+.unapply can raise:
+  CoercionError
+  UndefinedRefsError
+
+
+"""
+
 
 class Environment(Namable):
   """
@@ -80,36 +101,12 @@ class Object(object):
   """
     Object base class, encapsulating a set of variable bindings scoped to this object.
   """
-  __slots__ = ('_scopes',)
+  __slots__ = ('_value', '_scopes',)
 
   class CoercionError(ValueError):
     def __init__(self, src, dst, message=None):
       error = "Cannot coerce '%s' to %s" % (src, dst.__name__)
       ValueError.__init__(self, '%s: %s' % (error, message) if message else error)
-
-  class InterpolationError(Exception): pass
-
-  @classmethod
-  def checker(cls, obj):
-    raise NotImplementedError
-
-  def __init__(self):
-    self._scopes = ()
-
-  def get(self):
-    raise NotImplementedError
-
-  def __hash__(self):
-    si, _ = self.interpolate()
-    return hash(si.get())
-
-  def copy(self):
-    """
-      Return a copy of this object.
-    """
-    self_copy = self.dup()
-    self_copy._scopes = copy.copy(self._scopes)
-    return self_copy
 
   @staticmethod
   def translate_to_scopes(*args, **kw):
@@ -119,12 +116,53 @@ class Object(object):
       scopes.append(Environment(kw))
     return tuple(scopes)
 
+  @classmethod
+  def checker(cls, obj):
+    raise NotImplementedError
+
+  @classmethod
+  def apply(cls, *args, **kw):
+    """
+      Convert constructor arguments to an internal value
+    """
+    raise NotImplementedError
+
+  @classmethod
+  def unapply(cls, value):
+    """
+      Unconvert a value to a frozen representation.
+    """
+    raise NotImplementedError
+
+  def __init__(self, *args, **kw):
+    self._value = self.apply(*args, **kw)
+    self._scopes = ()
+
+  def get(self):
+    return self.unapply(self._value)
+
+  def __hash__(self):
+    si, _ = self.interpolate()
+    return hash(si.get())
+
+  def __copy__(self):
+    self_copy = self.__class__.__new__(self.__class__)
+    self_copy._value = copy.copy(self._value)
+    self_copy._scopes = copy.copy(self._scopes)
+    return self_copy
+
+  def copy(self):
+    """
+      Return a copy of this object.
+    """
+    return copy.copy(self)
+
   def bind(self, *args, **kw):
     """
       Bind environment variables into this object's scope.
     """
     new_self = self.copy()
-    new_scopes = Object.translate_to_scopes(*args, **kw)
+    new_scopes = self.translate_to_scopes(*args, **kw)
     new_self._scopes = tuple(reversed(new_scopes)) + new_self._scopes
     return new_self
 
@@ -146,7 +184,6 @@ class Object(object):
     """
     try:
       si, uninterp = self.interpolate()
-    # TODO(wickman) This should probably be pushed out to the interpolate leaves.
     except (Object.CoercionError, MustacheParser.Uninterpolatable) as e:
       return TypeCheck(False, "Unable to interpolate: %s" % e)
     return self.checker(si)

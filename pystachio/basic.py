@@ -15,22 +15,20 @@ class SimpleObject(Object, Type):
   """
   __slots__ = ('_value',)
 
-  def __init__(self, value):
+  @classmethod
+  def apply(cls, value):
     try:
-      self._value = self.coerce(value)
-    except self.CoercionError:
+      value = cls.coerce(value)
+    except cls.CoercionError:
       if not isinstance(value, Compatibility.stringy):
         raise
       if not any(isinstance(split, Ref) for split in MustacheParser.split(value)):
         raise
-      self._value = value
-    super(SimpleObject, self).__init__()
+    return value
 
-  def get(self):
-    return self._value
-
-  def dup(self):
-    return self.__class__(self._value)
+  @classmethod
+  def unapply(cls, value):
+    return value
 
   def _my_cmp(self, other):
     if self.__class__ != other.__class__:

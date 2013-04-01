@@ -100,13 +100,3 @@ def test_environment_bad_values():
   for val in bad_values:
     with pytest.raises(ValueError):
       Environment(a = val)
-
-
-def test_object_unimplementeds():
-  o = Object()
-  with pytest.raises(NotImplementedError):
-    Object.checker(o)
-  with pytest.raises(NotImplementedError):
-    o.get()
-  with pytest.raises(NotImplementedError):
-    oi = o.interpolate()
