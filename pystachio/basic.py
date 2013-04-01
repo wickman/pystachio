@@ -9,12 +9,48 @@ from .typing import (
     TypeMetaclass)
 
 
+class Fragment(object):
+  def __init__(self, fragments):
+    for fragment in fragments:
+      if not isinstance(fragment, Ref) and not isinstance(fragment, Compatibility.stringy):
+        raise ValueError('Unexpected fragment type: %s' % fragment.__class__)
+    self._fragments = tuple(fragments)
+
+  @property
+  def refs(self):
+    return [fragment for fragment in self._fragments if isinstance(fragment, Ref)]
+
+  @property
+  def fragments(self):
+    return self._fragments
+
+  def __eq__(self, other):
+    if self.__class__ != other.__class__:
+      return False
+    return self._fragments == other._fragments
+
+  def __lt__(self, other):
+    return self._fragments < other._fragments
+
+  def __hash__(self):
+    return hash(str(self))
+
+  def resolve(self, *namables):
+    joins, _ = MustacheParser.join(self._fragments)
+    return MustacheParser.resolve(joins, *namables)
+
+  def __str__(self):
+    joined, _ = MustacheParser.join(self._fragments)
+    return joined
+
+  def __repr__(self):
+    return str(self)
+
+
 class SimpleObject(Object, Type):
   """
     A simply-valued (unnamable) object.
   """
-  __slots__ = ('_value',)
-
   @classmethod
   def apply(cls, value):
     try:
@@ -22,12 +58,18 @@ class SimpleObject(Object, Type):
     except cls.CoercionError:
       if not isinstance(value, Compatibility.stringy):
         raise
-      if not any(isinstance(split, Ref) for split in MustacheParser.split(value)):
+      value = Fragment(MustacheParser.split(value))
+      if len(value.refs) == 0:
         raise
     return value
 
   @classmethod
   def unapply(cls, value):
+    if isinstance(value, Fragment):
+      joins, _ = value.resolve()
+      # TODO(wickman) Perhaps unapply should take a strict bit?
+      # return cls.coerce(joins)
+      return joins
     return value
 
   def _my_cmp(self, other):
@@ -35,6 +77,8 @@ class SimpleObject(Object, Type):
       return -1
     si, _ = self.interpolate()
     oi, _ = other.interpolate()
+    if si._value.__class__ != oi._value.__class__:
+      return -1
     if si._value < oi._value:
       return -1
     elif si._value > oi._value:
@@ -72,17 +116,11 @@ class SimpleObject(Object, Type):
     return '%s(%s)' % (self.__class__.__name__, str(self) if Compatibility.PY3 else unicode(self))
 
   def interpolate(self):
-    if not isinstance(self._value, Compatibility.stringy):
-      return self.__class__(self.coerce(self._value)), []
-    else:
-      joins, unbound = MustacheParser.resolve(self._value, *self.scopes())
-      if unbound:
-        return self.__class__(joins), unbound
-      else:
-        # XXX
-        self_copy = self.copy()
-        self_copy._value = self_copy.coerce(joins)
-        return self_copy, unbound
+    if not isinstance(self._value, Fragment):
+      # TODO(wickman) Do we need to return a copy?
+      return self.copy(), []
+    joins, unbound = self._value.resolve(*self.scopes())
+    return self.__class__(joins), unbound
 
   @classmethod
   def type_factory(cls):
@@ -109,6 +147,9 @@ class String(SimpleObject):
   def coerce(cls, value):
     ACCEPTED_SOURCE_TYPES = Compatibility.stringy + Compatibility.numeric
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
+      raise cls.CoercionError(value, cls)
+    if isinstance(value, Compatibility.stringy) and any(
+        isinstance(ref, Ref) for ref in MustacheParser.split(value)):
       raise cls.CoercionError(value, cls)
     return str(value) if Compatibility.PY3 else unicode(value)
 
@@ -206,14 +247,6 @@ class BooleanFactory(TypeFactory):
 
 
 class EnumContainer(SimpleObject):
-  def __init__(self, value):
-    stringish = String(value)
-    _, refs = stringish.interpolate()
-    if not refs and value not in self.VALUES:
-      raise ValueError('%s only accepts the following values: %s' % (
-          self.__class__.__name__, ', '.join(self.VALUES)))
-    super(EnumContainer, self).__init__(value)
-
   @classmethod
   def checker(cls, obj):
     assert isinstance(obj, EnumContainer)

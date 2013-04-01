@@ -27,7 +27,6 @@ classmethod .unapply(value)     => frozen/reified version of class
 
 """
 
-
 class Environment(Namable):
   """
     A mount table for Refs pointing to Objects or arbitrary string substitutions.

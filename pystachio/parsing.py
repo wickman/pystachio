@@ -14,31 +14,30 @@ class MustacheParser(object):
     begin with '&'.
   """
 
-  _ADDRESS_DELIMITER = '&'
-  _MUSTACHE_RE = re.compile(r"{{(%c)?([^{}]+?)\1?}}" % _ADDRESS_DELIMITER)
+  ADDRESS_DELIMITER = '&'
+  MUSTACHE_RE = re.compile(r"{{(%c)?([^{}]+?)\1?}}" % ADDRESS_DELIMITER)
   MAX_ITERATIONS = 100
 
   class Error(Exception): pass
   class Uninterpolatable(Error): pass
 
-  @staticmethod
-  def split(string, keep_aliases=False):
-    splits = MustacheParser._MUSTACHE_RE.split(string)
+  @classmethod
+  def split(cls, string, keep_aliases=False):
+    splits = cls.MUSTACHE_RE.split(string)
     first_split = splits.pop(0)
     outsplits = [first_split] if first_split else []
     assert len(splits) % 3 == 0
     for k in range(0, len(splits), 3):
-      if splits[k] == MustacheParser._ADDRESS_DELIMITER:
+      if splits[k] == cls.ADDRESS_DELIMITER:
         outsplits.append('{{%s%s}}' % (
-            MustacheParser._ADDRESS_DELIMITER if keep_aliases else '',
-            splits[k+1]))
+            cls.ADDRESS_DELIMITER if keep_aliases else '',
+            splits[k + 1]))
       elif splits[k] == None:
-        outsplits.append(Ref.from_address(splits[k+1]))
+        outsplits.append(Ref.from_address(splits[k + 1]))
       else:
-        raise Exception("Unexpected parsing error in Mustache: splits[%s] = '%s'" % (
-          k, splits[k]))
-      if splits[k+2]:
-        outsplits.append(splits[k+2])
+        raise cls.Error("Unexpected parsing error in Mustache: splits[%s] = '%s'" % (k, splits[k]))
+      if splits[k + 2]:
+        outsplits.append(splits[k + 2])
     return outsplits
 
   @staticmethod
@@ -46,7 +45,7 @@ class MustacheParser(object):
     """
       Interpolate strings.
 
-      :params splits: The output of Parser.split(string)
+      :params splits: The output of MustacheParser.split(string)
       :params namables: A sequence of Namable objects in which the interpolation should take place.
 
       Returns 2-tuple containing:

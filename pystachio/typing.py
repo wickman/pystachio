@@ -140,6 +140,8 @@ class TypeMetaclass(type):
 
 
 class Type(object):
+  __slots__ = ()
+
   @classmethod
   def type_factory(cls):
     """ Return the name of the factory that produced this class. """
