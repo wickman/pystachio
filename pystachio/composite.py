@@ -169,6 +169,17 @@ class Structural(Object, Type, Namable):
     for attr, val in kw.items():
       value[attr] = cls._process_schema_attribute(attr, val)
 
+  # TODO(wickman) Perhaps apply_json and unapply_json as well so that you can do things
+  # like
+  #
+  # class Resources(Struct):
+  #   cpu = Required(Float)
+  #   ram = Required(Integer)
+  #
+  # task = task(resources = '{{wat}}').bind(wat = Resources(cpu = 1.0, ram = 1024))
+  #
+  # it sort of makes sense.. the apply/unapply should work against subtrees speaking
+  # in json.
   @classmethod
   def apply(cls, *args, **kw):
     value = frozendict((attr, v.default) for (attr, v) in cls.TYPEMAP.items())

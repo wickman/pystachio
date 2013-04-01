@@ -22,23 +22,35 @@ class MustacheParser(object):
   class Uninterpolatable(Error): pass
 
   @classmethod
-  def split(cls, string, keep_aliases=False):
+  def merge(cls, array):
+    pos = 0
+    while pos < len(array) - 1:
+      if isinstance(array[pos], Ref) or isinstance(array[pos + 1], Ref):
+        pos += 1
+        continue
+      array = array[:pos] + [''.join(array[pos:pos + 2])] + array[pos + 2:]
+    return array
+
+  @classmethod
+  def split(cls, string, downcast=False):
+    """
+      Split a string into a sequence of (str, ref, str, ref, ...)
+      If downcast=True, translate {{&references}} into {{references}}.
+    """
     splits = cls.MUSTACHE_RE.split(string)
     first_split = splits.pop(0)
     outsplits = [first_split] if first_split else []
     assert len(splits) % 3 == 0
     for k in range(0, len(splits), 3):
       if splits[k] == cls.ADDRESS_DELIMITER:
-        outsplits.append('{{%s%s}}' % (
-            cls.ADDRESS_DELIMITER if keep_aliases else '',
-            splits[k + 1]))
+        outsplits.append('{{%s%s}}' % ('' if downcast else cls.ADDRESS_DELIMITER, splits[k + 1]))
       elif splits[k] == None:
         outsplits.append(Ref.from_address(splits[k + 1]))
       else:
         raise cls.Error("Unexpected parsing error in Mustache: splits[%s] = '%s'" % (k, splits[k]))
       if splits[k + 2]:
         outsplits.append(splits[k + 2])
-    return outsplits
+    return cls.merge(outsplits)
 
   @staticmethod
   def join(splits, *namables):
@@ -54,42 +66,36 @@ class MustacheParser(object):
     isplits = []
     unbound = []
     for ref in splits:
-      if isinstance(ref, Ref):
-        resolved = False
-        for namable in namables:
-          try:
-            value = namable.find(ref)
-            resolved = True
-            break
-          except Namable.Error as e:
-            continue
-        if resolved:
-          isplits.append(value)
-        else:
-          isplits.append(ref)
-          unbound.append(ref)
+      if not isinstance(ref, Ref):
+        isplits.append(ref)
+        continue
+      for namable in namables:
+        try:
+          value = namable.find(ref)
+        except Namable.Error as e:
+          continue
+        isplits.append(value)
+        break
       else:
         isplits.append(ref)
+        unbound.append(ref)
     return (''.join(map(str if Compatibility.PY3 else unicode, isplits)), unbound)
 
   @classmethod
   def resolve(cls, stream, *namables):
-    def iterate(st, keep_aliases=True):
-      refs = MustacheParser.split(st, keep_aliases=keep_aliases)
+    def iterate(st, downcast=False):
+      refs = MustacheParser.split(st, downcast)
       unbound = [ref for ref in refs if isinstance(ref, Ref)]
       repl, interps = MustacheParser.join(refs, *namables)
-      rebound = [ref for ref in MustacheParser.split(repl, keep_aliases=keep_aliases)
-                 if isinstance(ref, Ref)]
+      rebound = [ref for ref in MustacheParser.split(repl, downcast) if isinstance(ref, Ref)]
       return repl, interps, unbound
-
     iterations = 0
     for iteration in range(cls.MAX_ITERATIONS):
-      stream, interps, unbound = iterate(stream, keep_aliases=True)
+      stream, interps, unbound = iterate(stream)
       if interps == unbound:
         break
     else:
       raise cls.Uninterpolatable('Unable to interpolate %s!  Maximum replacements reached.'
           % stream)
-
-    stream, _, unbound = iterate(stream, keep_aliases=False)
+    stream, _, unbound = iterate(stream, downcast=True)
     return stream, unbound

@@ -10,7 +10,14 @@ from .typing import (
 
 
 class Fragment(object):
-  def __init__(self, fragments):
+  """
+    A container around a not-fully-reified Pystachio leaf object.
+  """
+
+  def __init__(self, value):
+    if not isinstance(value, Compatibility.stringy):
+      raise ValueError('Fragments can only be made from string values!')
+    fragments = MustacheParser.split(value)
     for fragment in fragments:
       if not isinstance(fragment, Ref) and not isinstance(fragment, Compatibility.stringy):
         raise ValueError('Unexpected fragment type: %s' % fragment.__class__)
@@ -33,7 +40,7 @@ class Fragment(object):
     return self._fragments < other._fragments
 
   def __hash__(self):
-    return hash(str(self))
+    return hash(self._fragments)
 
   def resolve(self, *namables):
     joins, _ = MustacheParser.join(self._fragments)
@@ -44,7 +51,7 @@ class Fragment(object):
     return joined
 
   def __repr__(self):
-    return str(self)
+    return 'Fragment("%s")' % str(self)
 
 
 class SimpleObject(Object, Type):
@@ -58,7 +65,7 @@ class SimpleObject(Object, Type):
     except cls.CoercionError:
       if not isinstance(value, Compatibility.stringy):
         raise
-      value = Fragment(MustacheParser.split(value))
+      value = Fragment(value)
       if len(value.refs) == 0:
         raise
     return value
@@ -138,9 +145,6 @@ class String(SimpleObject):
     if isinstance(obj._value, Compatibility.stringy):
       return TypeCheck.success()
     else:
-      # TODO(wickman)  Perhaps we should mark uninterpolated Mustache objects as
-      # intrinsically non-stringy, because String will never typecheck false given
-      # its input constraints.
       return TypeCheck.failure("%s not a string" % repr(obj._value))
 
   @classmethod
@@ -226,7 +230,6 @@ class Boolean(SimpleObject):
     ACCEPTED_SOURCE_TYPES = (bool,) + Compatibility.numeric + Compatibility.stringy
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise cls.CoercionError(value, cls)
-
     if isinstance(value, bool):
       return value
     elif isinstance(value, Compatibility.stringy):

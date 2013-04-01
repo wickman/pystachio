@@ -38,9 +38,12 @@ def test_mustache_re():
 
 def test_mustache_splitting():
   assert MustacheParser.split("{{foo}}") == [ref("foo")]
-  assert MustacheParser.split("{{&foo}}") == ["{{foo}}"]
+  assert MustacheParser.split("{{&foo}}") == ["{{&foo}}"]
+  assert MustacheParser.split("{{&foo}}", downcast=True) == ["{{foo}}"]
   splits = MustacheParser.split('blech {{foo}} {{bar}} bonk {{&baz}} bling')
-  assert splits == ['blech ', ref("foo"), ' ', ref('bar'), ' bonk ', '{{baz}}', ' bling']
+  assert splits == ['blech ', ref("foo"), ' ', ref('bar'), ' bonk {{&baz}} bling']
+  splits = MustacheParser.split('blech {{foo}} {{bar}} bonk {{&baz}} bling', downcast=True)
+  assert splits == ['blech ', ref("foo"), ' ', ref('bar'), ' bonk {{baz}} bling']
 
 
 def test_mustache_joining():
@@ -54,7 +57,7 @@ def test_mustache_joining():
 
   splits = MustacheParser.split('blech {{foo}} {{bar}} bonk {{&baz}} bling')
   joined, unbound = MustacheParser.join(splits, oe)
-  assert joined == 'blech foo herp bar derp bonk {{baz}} bling'
+  assert joined == 'blech foo herp bar derp bonk {{&baz}} bling'
   assert unbound == []
 
   splits = MustacheParser.split('{{foo}} {{bar}} {{unbound}}')

@@ -1,5 +1,5 @@
 # Match("name")._('.*')._.instance >> mutator
-# 
+#
 # def apply(ref, object):
 #   pass
 #
@@ -46,12 +46,12 @@ class Matcher(object):
     new_match = Matcher()
     new_match._components = copy.copy(self._components) + [value]
     return new_match
-  
+
   def __with_resolver(self, resolver):
     new_match = Matcher()
     new_match._components = copy.copy(self._components)
     new_match._resolver = resolver
-    return new_match    
+    return new_match
 
   def __getattr__(self, pattern):
     if pattern == '_':
@@ -61,7 +61,7 @@ class Matcher(object):
       return self.__extend(Ref.Dereference(self.escape('.*')))
     else:
       return self.__extend(Ref.Dereference(self.escape(pattern)))
-  
+
   def __getitem__(self, pattern):
     if pattern is Any:
       return self.__extend(Ref.Index(self.escape('.*')))

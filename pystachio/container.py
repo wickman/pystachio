@@ -199,7 +199,7 @@ class MapContainer(Object, Namable, Type):
     else:
       raise ValueError("Unexpected input to MapContainer: %s" % repr(args))
     return value
-  
+
   @classmethod
   def unapply(cls, value):
     return frozendict((k.get(), v.get()) for (k, v) in value)

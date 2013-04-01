@@ -29,15 +29,21 @@ classmethod .unapply(value)     => frozen/reified version of class
 
 class Environment(Namable):
   """
-    A mount table for Refs pointing to Objects or arbitrary string substitutions.
+    A mechanism to scope namables against Refs.
+
+    For example, Lists, Maps and Structs are all Namables, but rather than bind them
+    at a global scope, Environments allow you to bind them to arbitrary scopes rooted
+    at a particular Ref.
+
+    Think of it as the mount table for namables in pystachio.
   """
   __slots__ = ('_table',)
 
-  @staticmethod
-  def wrap(value):
+  @classmethod
+  def wrap(cls, value):
     if isinstance(value, dict):
-      return Environment(value)
-    elif isinstance(value, (Environment, Object)):
+      return cls(value)
+    elif isinstance(value, (cls, Object)):
       return value
     else:
       if isinstance(value, Compatibility.numeric + Compatibility.stringy):
@@ -46,6 +52,16 @@ class Environment(Namable):
         raise ValueError(
           'Environment values must be strings, numbers, Objects or other Environments. '
           'Got %s instead.' % type(value))
+
+  def __init__(self, *dicts, **kw):
+    self._table = {}
+    for d in list(dicts) + [kw]:
+      if isinstance(d, dict):
+        self._assimilate_dictionary(d)
+      elif isinstance(d, Environment):
+        self._assimilate_table(d)
+      else:
+        raise ValueError("Environment expects dict or Environment, got %s" % repr(d))
 
   def _assimilate_dictionary(self, d):
     for key, val in d.items():
@@ -60,16 +76,6 @@ class Environment(Namable):
   def _assimilate_table(self, mt):
     for key, val in mt._table.items():
       self._table[key] = val
-
-  def __init__(self, *dicts, **kw):
-    self._table = {}
-    for d in list(dicts) + [kw]:
-      if isinstance(d, dict):
-        self._assimilate_dictionary(d)
-      elif isinstance(d, Environment):
-        self._assimilate_table(d)
-      else:
-        raise ValueError("Environment expects dict or Environment, got %s" % repr(d))
 
   def find(self, ref):
     if ref in self._table:
@@ -183,6 +189,7 @@ class Object(object):
     """
     try:
       si, uninterp = self.interpolate()
+    # TODO(wickman) Fully push the MustacheParser considerations to SimpleObjects
     except (Object.CoercionError, MustacheParser.Uninterpolatable) as e:
       return TypeCheck(False, "Unable to interpolate: %s" % e)
     return self.checker(si)
