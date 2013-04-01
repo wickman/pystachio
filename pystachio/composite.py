@@ -3,12 +3,11 @@ import copy
 from inspect import isclass
 import json
 
-from pystachio.base import Object, Environment
-from pystachio.naming import Ref, Namable, frozendict
-from pystachio.typing import (
+from .base import Object, Environment
+from .naming import Ref, Namable, frozendict
+from .typing import (
   Type,
   TypeCheck,
-  TypeEnvironment,
   TypeFactory,
   TypeMetaclass)
 
@@ -101,36 +100,6 @@ def Default(cls, default):
   return TypeSignature(cls, required=False, default=default)
 
 
-def Provided(*types, **bound_types):
-  """
-    Specify the requirement that this Struct is only interpolated within the context
-    of certain other Structs.
-
-    e.g.
-
-    class JobEnvironment(Struct):
-      user  = String
-      group = String
-      ram   = Integer
-
-    @Provided(job = JobEnvironment)
-    class Job(Struct):
-      name    = String
-      command = Default(String, 'echo {{job.user}} from {{job.group}}!')
-  """
-  def annotator(klazz):
-    assert issubclass(klazz, Structural)
-    klazz_factory, klazz_name, klazz_bindings, klazz_attributes = klazz.serialize_type()
-
-    old_type_environment = TypeEnvironment.deserialize(klazz_bindings, {})
-    new_type_environment = TypeEnvironment(*types, **bound_types)
-    return TypeFactory.new({}, 'Struct',
-      klazz_name,
-      new_type_environment.merge(old_type_environment).serialize(),
-      klazz_attributes)
-  return annotator
-
-
 class StructFactory(TypeFactory):
   PROVIDES = 'Struct'
 
@@ -148,13 +117,12 @@ class StructFactory(TypeFactory):
          ...
          (attribute_nameN, ...))
     """
-    name, bindings, parameters = type_parameters
+    name, parameters = type_parameters
     for param in parameters:
       assert isinstance(param, tuple)
     typemap = dict((attr, TypeSignature.deserialize(param, type_dict))
                    for attr, param in parameters)
-    bindings = TypeEnvironment.deserialize(bindings, type_dict)
-    attributes = {'TYPEMAP': typemap, 'REQUIRES': bindings}
+    attributes = {'TYPEMAP': typemap}
     return TypeMetaclass(str(name), (Structural,), attributes)
 
 
@@ -174,33 +142,27 @@ class StructMetaclass(type):
   def __new__(mcs, name, parents, attributes):
     if any(parent.__name__ == 'Struct' for parent in parents):
       type_parameters = StructMetaclass.attributes_to_parameters(attributes)
-      return TypeFactory.new({}, 'Struct', name, (), type_parameters)
+      return TypeFactory.new({}, 'Struct', name, type_parameters)
     else:
       return type.__new__(mcs, name, parents, attributes)
 
 
 StructMetaclassWrapper = StructMetaclass('StructMetaclassWrapper', (object,), {})
-
 class Structural(Object, Type, Namable):
   """A Structural base type for composite objects."""
+  __slots__ = ('_schema_data',)
 
   def __init__(self, *args, **kw):
-    self._init_schema_data()
+    self._schema_data = frozendict((attr, value.default) for (attr, value) in self.TYPEMAP.items())
     for arg in args:
       if not isinstance(arg, Mapping):
         raise ValueError('Expected dictionary argument, got %s' % repr(arg))
       self._update_schema_data(**arg)
     self._update_schema_data(**copy.copy(kw))
-    Object.__init__(self)
+    super(Structural, self).__init__()
 
   def get(self):
     return frozendict((k, v.get()) for k, v in self._schema_data.items() if v is not Empty)
-
-  def _init_schema_data(self):
-    self._schema_data = {}
-    for attr in self.TYPEMAP:
-      self._schema_data[attr] = self.TYPEMAP[attr].default
-    self._schema_data = frozendict(self._schema_data)
 
   def _process_schema_attribute(self, attr, value):
     if attr not in self.TYPEMAP:
@@ -217,11 +179,8 @@ class Structural(Object, Type, Namable):
     for attr, value in kw.items():
       self._schema_data[attr] = self._process_schema_attribute(attr, value)
 
-  def copy(self):
-    new_object = self.__class__(**self._schema_data)
-    new_object._scopes = copy.copy(self.scopes())
-    new_object._modulo = copy.copy(self.modulo())
-    return new_object
+  def dup(self):
+    return self.__class__(**self._schema_data)
 
   def __call__(self, **kw):
     new_self = self.copy()
@@ -261,9 +220,7 @@ class Structural(Object, Type, Namable):
       if self._schema_data[name] is Empty and signature.required:
         return TypeCheck.failure('%s[%s] is required.' % (self.__class__.__name__, name))
       elif self._schema_data[name] is not Empty:
-        type_check = (self._schema_data[name].in_scope(*self.scopes())
-                                             .provided(self.modulo())
-                                             .check())
+        type_check = self._schema_data[name].in_scope(*self.scopes()).check()
         if type_check.ok():
           continue
         else:
@@ -271,26 +228,22 @@ class Structural(Object, Type, Namable):
             type_check.message()))
     return TypeCheck.success()
 
-  def modulo(self):
-    return super(Structural, self).modulo().merge(self.REQUIRES)
-
   def _self_scope(self):
     return dict((key, value) for (key, value) in self._schema_data.items()
                 if value is not Empty)
 
   def scopes(self):
-    return [Environment(self._self_scope())] + self._scopes
+    return (Environment(self._self_scope()),) + self._scopes
 
   def interpolate(self):
     unbound = set()
     interpolated_schema_data = {}
     scopes = self.scopes()
-    modulo = self.modulo()
     for key, value in self._schema_data.items():
       if value is Empty:
         interpolated_schema_data[key] = Empty
       else:
-        vinterp, vunbound = value.in_scope(*scopes).provided(modulo).interpolate()
+        vinterp, vunbound = value.in_scope(*scopes).interpolate()
         unbound.update(vunbound)
         interpolated_schema_data[key] = vinterp
     return self.__class__(**interpolated_schema_data), list(unbound)
@@ -298,10 +251,7 @@ class Structural(Object, Type, Namable):
   def interpolate_key(self, attribute):
     if self._schema_data[attribute] is Empty:
       return Empty
-    vinterp, _ = (
-      self._schema_data[attribute].in_scope(*self.scopes())
-                                  .provided(self.modulo())
-                                  .interpolate())
+    vinterp, _ = self._schema_data[attribute].in_scope(*self.scopes()).interpolate()
     return self._process_schema_attribute(attribute, vinterp)
 
   @classmethod
@@ -313,21 +263,7 @@ class Structural(Object, Type, Namable):
     attrs = []
     if hasattr(cls, 'TYPEMAP'):
       attrs = sorted([(attr, sig.serialize()) for attr, sig in cls.TYPEMAP.items()])
-    bindings = cls.REQUIRES.serialize()
-    return (cls.__name__, bindings, tuple(attrs))
-
-  @classmethod
-  def provides(cls, ref):
-    assert isinstance(ref, Ref)
-    if isinstance(ref.action(), Ref.Dereference):
-      if ref.action().value in cls.TYPEMAP:
-        if ref.rest().is_empty():
-          return True
-        else:
-          klazz = cls.TYPEMAP[ref.action().value].klazz
-          if issubclass(klazz, Namable):
-            return cls.TYPEMAP[ref.action().value].klazz.provides(ref.rest())
-    return False
+    return (cls.__name__, tuple(attrs))
 
   @classmethod
   def _filter_against_schema(cls, values):

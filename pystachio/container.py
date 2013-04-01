@@ -2,15 +2,14 @@ from collections import Iterable, Mapping, Sequence
 import copy
 from inspect import isclass
 
-from pystachio.base import Object
-from pystachio.compatibility import Compatibility
-from pystachio.naming import Namable, Ref, frozendict
-from pystachio.typing import (
-  Type,
-  TypeCheck,
-  TypeEnvironment,
-  TypeFactory,
-  TypeMetaclass)
+from .base import Object
+from .compatibility import Compatibility
+from .naming import Namable, Ref, frozendict
+from .typing import (
+    Type,
+    TypeCheck,
+    TypeFactory,
+    TypeMetaclass)
 
 
 class ListFactory(TypeFactory):
@@ -28,25 +27,24 @@ class ListFactory(TypeFactory):
     return TypeMetaclass('%sList' % klazz.__name__, (ListContainer,), { 'TYPE': klazz })
 
 
-class ListContainer(Namable, Object, Type):
+class ListContainer(Object, Namable, Type):
   """
     The List container type.  This is the base class for all user-generated
     List types.  It won't function as-is, since it requires cls.TYPE to be
     set to the contained type.  If you want a concrete List type, see the
     List() function.
   """
+  __slots__ = ('_values',)
+
   def __init__(self, vals):
     self._values = self._coerce_values(copy.copy(vals))
-    Object.__init__(self)
+    super(ListContainer, self).__init__()
 
   def get(self):
-    return tuple([v.get() for v in self._values])
+    return tuple(v.get() for v in self._values)
 
-  def copy(self):
-    new_self = self.__class__(self._values)
-    new_self._scopes = copy.copy(self.scopes())
-    new_self._modulo = copy.copy(self.modulo())
-    return new_self
+  def dup(self):
+    return self.__class__(self._values)
 
   def __hash__(self):
     return hash(self.get())
@@ -93,7 +91,7 @@ class ListContainer(Namable, Object, Type):
     assert ListContainer.isiterable(self._values)
     for element in self._values:
       assert isinstance(element, self.TYPE)
-      typecheck = element.in_scope(*self.scopes()).provided(self.modulo()).check()
+      typecheck = element.in_scope(*self.scopes()).check()
       if not typecheck.ok():
         return TypeCheck.failure("Element in %s failed check: %s" % (self.__class__.__name__,
           typecheck.message()))
@@ -103,21 +101,10 @@ class ListContainer(Namable, Object, Type):
     unbound = set()
     interpolated = []
     for element in self._values:
-      einterp, eunbound = element.in_scope(*self.scopes()).provided(self.modulo()).interpolate()
+      einterp, eunbound = element.in_scope(*self.scopes()).interpolate()
       interpolated.append(einterp)
       unbound.update(eunbound)
     return self.__class__(interpolated), list(unbound)
-
-  @classmethod
-  def provides(cls, ref):
-    assert isinstance(ref, Ref)
-    if isinstance(ref.action(), ref.Index):
-      if ref.rest().is_empty():
-        return True
-      else:
-        if issubclass(cls.TYPE, Namable):
-          return cls.TYPE.provides(ref.rest())
-    return False
 
   def find(self, ref):
     if not ref.is_index():
@@ -176,7 +163,7 @@ class MapFactory(TypeFactory):
 # >>> my_map.get()[True]
 # 2
 # we should filter tuples for uniqueness.
-class MapContainer(Namable, Object, Type):
+class MapContainer(Object, Namable, Type):
   """
     The Map container type.  This is the base class for all user-generated
     Map types.  It won't function as-is, since it requires cls.KEYTYPE and
@@ -186,6 +173,8 @@ class MapContainer(Namable, Object, Type):
     __init__(dict) => translates to list of tuples & sanity checks
     __init__(tuple) => sanity checks
   """
+  __slots__ = ('_map',)
+
   def __init__(self, *args):
     """
       Construct a map.
@@ -199,7 +188,7 @@ class MapContainer(Namable, Object, Type):
       self._map = self._coerce_tuple(args)
     else:
       raise ValueError("Unexpected input to MapContainer: %s" % repr(args))
-    Object.__init__(self)
+    super(MapContainer, self).__init__()
 
   def get(self):
     return frozendict((k.get(), v.get()) for (k, v) in self._map)
@@ -242,11 +231,8 @@ class MapContainer(Namable, Object, Type):
     except KeyError:
       return False
 
-  def copy(self):
-    new_self = self.__class__(*self._map)
-    new_self._scopes = copy.copy(self.scopes())
-    new_self._modulo = copy.copy(self.modulo())
-    return new_self
+  def dup(self):
+    return self.__class__(*self._map)
 
   def __repr__(self):
     si, _ = self.interpolate()
@@ -266,8 +252,8 @@ class MapContainer(Namable, Object, Type):
     for key, value in self._map:
       assert isinstance(key, self.KEYTYPE)
       assert isinstance(value, self.VALUETYPE)
-      keycheck = key.in_scope(*self.scopes()).provided(self.modulo()).check()
-      valuecheck = value.in_scope(*self.scopes()).provided(self.modulo()).check()
+      keycheck = key.in_scope(*self.scopes()).check()
+      valuecheck = value.in_scope(*self.scopes()).check()
       if not keycheck.ok():
         return TypeCheck.failure("%s key %s failed check: %s" % (self.__class__.__name__,
           key, keycheck.message()))
@@ -280,24 +266,12 @@ class MapContainer(Namable, Object, Type):
     unbound = set()
     interpolated = []
     for key, value in self._map:
-      kinterp, kunbound = key.in_scope(*self.scopes()).provided(self.modulo()).interpolate()
-      vinterp, vunbound = value.in_scope(*self.scopes()).provided(self.modulo()).interpolate()
+      kinterp, kunbound = key.in_scope(*self.scopes()).interpolate()
+      vinterp, vunbound = value.in_scope(*self.scopes()).interpolate()
       unbound.update(kunbound)
       unbound.update(vunbound)
       interpolated.append((kinterp, vinterp))
     return self.__class__(*interpolated), list(unbound)
-
-  @classmethod
-  def provides(cls, ref):
-    # TODO(wickman)  Should we be typechecking the ref.action().value?
-    assert isinstance(ref, Ref)
-    if isinstance(ref.action(), ref.Index):
-      if ref.rest().is_empty():
-        return True
-      else:
-        if issubclass(cls.VALUETYPE, Namable):
-          return cls.VALUETYPE.provides(ref.rest())
-    return False
 
   def find(self, ref):
     if not ref.is_index():

@@ -1,7 +1,7 @@
 import re
 from itertools import chain
 
-from pystachio.compatibility import Compatibility
+from .compatibility import Compatibility
 
 
 class frozendict(dict):
@@ -45,13 +45,6 @@ class Namable(object):
       Raises Namable.NotFound if not found.
       Raises Namable.NamingError if try to dereference object in an invalid way.
       Raises Namable.Unnamable if try to dereference into an unnamable type.
-    """
-    raise NotImplementedError
-
-  @classmethod
-  def provides(cls, ref):
-    """
-      Given a ref, determine whether or not this class could dereference it.
     """
     raise NotImplementedError
 

@@ -1,7 +1,8 @@
 import re
 
-from pystachio.compatibility import Compatibility
-from pystachio.naming import Namable, Ref
+from .compatibility import Compatibility
+from .naming import Namable, Ref
+
 
 class MustacheParser(object):
   """

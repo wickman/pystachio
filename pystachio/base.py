@@ -1,19 +1,17 @@
+import copy
 from pprint import pformat
 
-from pystachio.compatibility import Compatibility
-from pystachio.naming import (
-  Ref,
-  Namable)
-from pystachio.parsing import MustacheParser
-from pystachio.typing import (
-  TypeCheck,
-  TypeEnvironment)
+from .compatibility import Compatibility
+from .naming import Namable, Ref
+from .parsing import MustacheParser
+from .typing import TypeCheck
 
 
 class Environment(Namable):
   """
     A mount table for Refs pointing to Objects or arbitrary string substitutions.
   """
+  __slots__ = ('_table',)
 
   @staticmethod
   def wrap(value):
@@ -53,28 +51,6 @@ class Environment(Namable):
       else:
         raise ValueError("Environment expects dict or Environment, got %s" % repr(d))
 
-  # Duck-typed against provides classmethod.
-  #
-  # TODO(wickman) provides should probably somehow be integrated with find in this case.
-  def provides(self, ref):
-    assert isinstance(ref, Ref)
-    if ref in self._table:
-      return True
-    targets = [key for key in self._table if Ref.subscope(key, ref)]
-    if not targets:
-      return False
-    else:
-      for key in sorted(targets, reverse=True):
-        scope = self._table[key]
-        if not isinstance(scope, Namable):
-          continue
-        subscope = Ref.subscope(key, ref)
-        # If subscope is empty, then we should've found it in the ref table.
-        assert not subscope.is_empty()
-        if scope.provides(subscope):
-          return True
-    return False
-
   def find(self, ref):
     if ref in self._table:
       return self._table[ref]
@@ -104,6 +80,8 @@ class Object(object):
   """
     Object base class, encapsulating a set of variable bindings scoped to this object.
   """
+  __slots__ = ('_scopes',)
+
   class CoercionError(ValueError):
     def __init__(self, src, dst, message=None):
       error = "Cannot coerce '%s' to %s" % (src, dst.__name__)
@@ -116,8 +94,7 @@ class Object(object):
     raise NotImplementedError
 
   def __init__(self):
-    self._scopes = []
-    self._modulo = TypeEnvironment()
+    self._scopes = ()
 
   def get(self):
     raise NotImplementedError
@@ -130,15 +107,17 @@ class Object(object):
     """
       Return a copy of this object.
     """
-    raise NotImplementedError
+    self_copy = self.dup()
+    self_copy._scopes = copy.copy(self._scopes)
+    return self_copy
 
   @staticmethod
   def translate_to_scopes(*args, **kw):
-    scopes = []
-    for arg in args:
-      scopes.append(arg if isinstance(arg, Namable) else Environment.wrap(arg))
-    scopes.extend([Environment(kw)] if kw else [])
-    return scopes
+    scopes = [arg if isinstance(arg, Namable) else Environment.wrap(arg)
+              for arg in args]
+    if kw:
+      scopes.append(Environment(kw))
+    return tuple(scopes)
 
   def bind(self, *args, **kw):
     """
@@ -146,12 +125,7 @@ class Object(object):
     """
     new_self = self.copy()
     new_scopes = Object.translate_to_scopes(*args, **kw)
-    new_self._scopes = list(reversed(new_scopes)) + new_self._scopes
-    return new_self
-
-  def provided(self, environment):
-    new_self = self.copy()
-    new_self._modulo = new_self._modulo.merge(environment)
+    new_self._scopes = tuple(reversed(new_scopes)) + new_self._scopes
     return new_self
 
   def in_scope(self, *args, **kw):
@@ -166,9 +140,6 @@ class Object(object):
   def scopes(self):
     return self._scopes
 
-  def modulo(self):
-    return self._modulo
-
   def check(self):
     """
       Type check this object.
@@ -178,11 +149,6 @@ class Object(object):
     # TODO(wickman) This should probably be pushed out to the interpolate leaves.
     except (Object.CoercionError, MustacheParser.Uninterpolatable) as e:
       return TypeCheck(False, "Unable to interpolate: %s" % e)
-    type_environment = self.modulo()
-    for ref in uninterp:
-      if not type_environment.covers(ref):
-        return TypeCheck(False, "Uninterpolated variables: %s" %
-          ' '.join('%s' % ref for ref in uninterp))
     return self.checker(si)
 
   def __ne__(self, other):
