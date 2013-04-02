@@ -194,7 +194,7 @@ class Object(object):
     interp, _ = self.bind(namable).interpolate()
     return interp
 
-  def interpolate(self):
+  def interpolate(self, matchers=()):
     """
       Interpolate this object in the context of the Object's environment.
 

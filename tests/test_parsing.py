@@ -51,17 +51,17 @@ def test_mustache_joining():
                    bar = "bar derp",
                    baz = "baz blerp")
 
-  joined, unbound = MustacheParser.join(MustacheParser.split("{{foo}}"), oe)
+  joined, unbound = MustacheParser.join(MustacheParser.split("{{foo}}"), (), oe)
   assert joined == "foo herp"
   assert unbound == []
 
   splits = MustacheParser.split('blech {{foo}} {{bar}} bonk {{&baz}} bling')
-  joined, unbound = MustacheParser.join(splits, oe)
+  joined, unbound = MustacheParser.join(splits, (), oe)
   assert joined == 'blech foo herp bar derp bonk {{&baz}} bling'
   assert unbound == []
 
   splits = MustacheParser.split('{{foo}} {{bar}} {{unbound}}')
-  joined, unbound = MustacheParser.join(splits, oe)
+  joined, unbound = MustacheParser.join(splits, (), oe)
   assert joined == 'foo herp bar derp {{unbound}}'
   assert unbound == [Ref.from_address('unbound')]
 
@@ -70,7 +70,7 @@ def test_nested_mustache_resolution():
   # straight
   oe = Environment(foo = '{{bar}}', bar = '{{baz}}', baz = 'hello')
   for pattern in ('{{foo}}', '{{bar}}', '{{baz}}', 'hello'):
-    resolved, unbound = MustacheParser.resolve('%s world' % pattern, oe)
+    resolved, unbound = MustacheParser.resolve('%s world' % pattern, (), oe)
     assert resolved == 'hello world'
     assert unbound == []
 
@@ -89,21 +89,21 @@ def test_nested_mustache_resolution():
   # iterably
   resolve_string = '{{foo[{{bar}}]}}'
   resolve_list = List(String)(["hello", "world"])
-  resolved, unbound = MustacheParser.resolve(resolve_string, Environment(foo=resolve_list, bar=0))
+  resolved, unbound = MustacheParser.resolve(resolve_string, (), Environment(foo=resolve_list, bar=0))
   assert resolved == 'hello'
   assert unbound == []
-  resolved, unbound = MustacheParser.resolve(resolve_string, Environment(foo=resolve_list, bar="0"))
+  resolved, unbound = MustacheParser.resolve(resolve_string, (), Environment(foo=resolve_list, bar="0"))
   assert resolved == 'hello'
   assert unbound == []
-  resolved, _ = MustacheParser.resolve(resolve_string, Environment(foo=resolve_list, bar=1))
+  resolved, _ = MustacheParser.resolve(resolve_string, (), Environment(foo=resolve_list, bar=1))
   assert resolved == 'world'
-  resolved, unbound = MustacheParser.resolve(resolve_string, Environment(foo=resolve_list, bar=2))
+  resolved, unbound = MustacheParser.resolve(resolve_string, (), Environment(foo=resolve_list, bar=2))
   assert resolved == '{{foo[2]}}'
   assert unbound == [ref('foo[2]')]
 
 
 def test_mustache_resolve_cycles():
   with pytest.raises(MustacheParser.Uninterpolatable):
-    MustacheParser.resolve('{{foo[{{bar}}]}} {{baz}}',
+    MustacheParser.resolve('{{foo[{{bar}}]}} {{baz}}', (),
        Environment(foo = List(String)(["{{foo[{{bar}}]}}", "world"])), Environment(bar = 0))
 

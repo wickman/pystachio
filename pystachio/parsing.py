@@ -2,6 +2,7 @@ import re
 
 from .compatibility import Compatibility
 from .naming import Namable, Ref
+from .matcher import Matcher
 
 
 class MustacheParser(object):
@@ -52,8 +53,8 @@ class MustacheParser(object):
         outsplits.append(splits[k + 2])
     return cls.merge(outsplits)
 
-  @staticmethod
-  def join(splits, *namables):
+  @classmethod
+  def join(cls, splits, matchers, *namables):
     """
       Interpolate strings.
 
@@ -65,6 +66,17 @@ class MustacheParser(object):
     """
     isplits = []
     unbound = []
+    namables = list(namables)
+    splits = list(splits)
+
+    for k, split in enumerate(splits):
+      if isinstance(split, Ref):
+        for matcher in matchers:
+          try:
+            splits[k], namables = matcher.apply(split, namables)
+          except Matcher.NoMatch:
+            continue
+
     for ref in splits:
       if not isinstance(ref, Ref):
         isplits.append(ref)
@@ -82,12 +94,12 @@ class MustacheParser(object):
     return (''.join(map(str if Compatibility.PY3 else unicode, isplits)), unbound)
 
   @classmethod
-  def resolve(cls, stream, *namables):
+  def resolve(cls, stream, matchers, *namables):
     def iterate(st, downcast=False):
-      refs = MustacheParser.split(st, downcast)
+      refs = cls.split(st, downcast)
       unbound = [ref for ref in refs if isinstance(ref, Ref)]
-      repl, interps = MustacheParser.join(refs, *namables)
-      rebound = [ref for ref in MustacheParser.split(repl, downcast) if isinstance(ref, Ref)]
+      repl, interps = cls.join(refs, matchers, *namables)
+      rebound = [ref for ref in cls.split(repl, downcast) if isinstance(ref, Ref)]
       return repl, interps, unbound
     iterations = 0
     for iteration in range(cls.MAX_ITERATIONS):

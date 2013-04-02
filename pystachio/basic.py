@@ -42,12 +42,12 @@ class Fragment(object):
   def __hash__(self):
     return hash(self._fragments)
 
-  def resolve(self, *namables):
-    joins, _ = MustacheParser.join(self._fragments)
-    return MustacheParser.resolve(joins, *namables)
+  def resolve(self, matchers, *namables):
+    joins, _ = MustacheParser.join(self._fragments, ())
+    return MustacheParser.resolve(joins, matchers, *namables)
 
   def __str__(self):
-    joined, _ = MustacheParser.join(self._fragments)
+    joined, _ = MustacheParser.join(self._fragments, ())
     return joined
 
   def __repr__(self):
@@ -73,7 +73,8 @@ class SimpleObject(Object, Type):
   @classmethod
   def unapply(cls, value):
     if isinstance(value, Fragment):
-      joins, _ = value.resolve()
+      # TODO(wickman) This is fucked
+      joins, _ = value.resolve(())
       # TODO(wickman) Perhaps unapply should take a strict bit?
       # return cls.coerce(joins)
       return joins
@@ -122,11 +123,10 @@ class SimpleObject(Object, Type):
   def __repr__(self):
     return '%s(%s)' % (self.__class__.__name__, str(self) if Compatibility.PY3 else unicode(self))
 
-  def interpolate(self):
+  def interpolate(self, matchers=()):
     if not isinstance(self._value, Fragment):
-      # TODO(wickman) Do we need to return a copy?
       return self.copy(), []
-    joins, unbound = self._value.resolve(*self.scopes())
+    joins, unbound = self._value.resolve(matchers, *self.scopes())
     return self.__class__(joins), unbound
 
   @classmethod

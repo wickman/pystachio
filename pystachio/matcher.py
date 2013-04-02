@@ -12,7 +12,7 @@ except ImportError:
 import re
 
 from .compatibility import Compatibility
-from .naming import Ref
+from .naming import Namable, Ref
 
 
 class Any(object):
@@ -77,7 +77,7 @@ class Matcher(object):
     # XXX check
     return self.__with_resolver(resolver)
 
-  def apply(self, obj, ref):
+  def apply(self, ref, namables):
     args = []
     zips = list(zipl(self._components, ref.components()))
     for pattern, component in zips[:len(self._components)]:
@@ -85,4 +85,15 @@ class Matcher(object):
         args.append(component.value)
       else:
         raise self.NoMatch
-    self._resolver(obj, ref, *args)
+    value = self._resolver(ref, namables, *args)
+    if not hasattr(value, '__iter__') and len(value) != 2:
+      raise ValueError('Matcher resolver needs to return an updated ref and namables')
+    new_ref, namables = value
+    if not isinstance(new_ref, Compatibility.stringy) and not isinstance(new_ref, Ref):
+      raise ValueError('Matcher resolver expeced ref, got %s' % new_ref)
+    if not hasattr(namables, '__iter__'):
+      raise ValueError('Matcher resolver should return array of namables.')
+    for namable in namables:
+      if not isinstance(namable, Namable):
+        raise ValueError('Matcher resolver should return array of namables.')
+    return new_ref, namables
