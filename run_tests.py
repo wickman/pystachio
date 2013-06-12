@@ -26,7 +26,7 @@ def main(args):
 
   def gen_shell_command():
     py_test = os.path.join(virtualenvs[1], 'bin', 'py.test')
-    tx_targets = [['--tx', 'popen//python=%s' % os.path.join(ve, 'bin', 'python')]
+    tx_targets = [['-v', '--tx', 'popen//python=%s' % os.path.join(ve, 'bin', 'python')]
                   for ve in virtualenvs]
     coverage_args = ['--cov=pystachio', '--cov-report=term-missing', '--cov-report=html']
     if os.environ.get('WITHOUT_COVERAGE'):
