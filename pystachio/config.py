@@ -75,7 +75,7 @@ class ResourceExecutor(FileExecutor):
   def resource_exists(cls, loadable):
     if pkg_resources is None:
       return False
-    module_base, module_file = os.path.split(filename)
+    module_base, module_file = os.path.split(loadable)
     module_base = module_base.replace(os.sep, '.')
     try:
       return pkg_resources.resource_exists(module_base, module_file) and (
