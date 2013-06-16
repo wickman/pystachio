@@ -1,27 +1,28 @@
-import copy
-
-from pystachio.base import Object
-from pystachio.compatibility import Compatibility
-from pystachio.parsing import MustacheParser
-from pystachio.typing import Type, TypeFactory, TypeMetaclass, TypeCheck
+from .base import Object
+from .compatibility import Compatibility
+from .parsing import MustacheParser
+from .typing import (
+    Type,
+    TypeCheck,
+    TypeFactory,
+    TypeMetaclass)
 
 
 class SimpleObject(Object, Type):
   """
     A simply-valued (unnamable) object.
   """
+  __slots__ = ('_value',)
+
   def __init__(self, value):
     self._value = value
-    Object.__init__(self)
+    super(SimpleObject, self).__init__()
 
   def get(self):
     return self._value
 
-  def copy(self):
-    new_self = self.__class__(self._value)
-    new_self._scopes = copy.copy(self.scopes())
-    new_self._modulo = copy.copy(self.modulo())
-    return new_self
+  def dup(self):
+    return self.__class__(self._value)
 
   def _my_cmp(self, other):
     if self.__class__ != other.__class__:
@@ -70,8 +71,9 @@ class SimpleObject(Object, Type):
     else:
       joins, unbound = MustacheParser.resolve(self._value, *self.scopes())
       if unbound:
-        return self.__class__(joins), [ref for ref in unbound if not self.modulo().covers(ref)]
+        return self.__class__(joins), unbound
       else:
+        # XXX
         self_copy = self.copy()
         self_copy._value = self_copy.coerce(joins)
         return self_copy, unbound
@@ -214,8 +216,8 @@ class EnumContainer(SimpleObject):
     if isinstance(obj._value, Compatibility.stringy) and obj._value in cls.VALUES:
       return TypeCheck.success()
     else:
-      return TypeCheck.failure("%s not in the enumeration (%s)" % repr(obj._value),
-        ', '.join(cls.VALUES))
+      return TypeCheck.failure("%s not in the enumeration (%s)" % (repr(obj._value),
+        ', '.join(cls.VALUES)))
 
   @classmethod
   def coerce(cls, value):
