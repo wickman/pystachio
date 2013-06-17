@@ -1,7 +1,4 @@
-import functools
-from inspect import isclass
-
-from .naming import Ref, Namable, frozendict
+from .naming import frozendict
 
 
 class TypeCheck(object):

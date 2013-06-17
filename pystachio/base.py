@@ -68,7 +68,7 @@ class Environment(Namable):
         try:
           resolved = scope.find(subscope)
           return resolved
-        except Namable.Error as e:
+        except Namable.Error:
           continue
     raise Namable.NotFound(self, ref)
 

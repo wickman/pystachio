@@ -1,11 +1,6 @@
-from collections import namedtuple
-import copy
-import json
 import os
-import re
 
 from .compatibility import Compatibility
-from .naming import Ref
 
 try:
   import pkg_resources

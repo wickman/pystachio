@@ -203,3 +203,24 @@ def test_getattr_bad_cases():
 
   with pytest.raises(AttributeError):
     t.this_should_properly_raise
+
+
+def test_self_super():
+  class Child(Struct):
+    value = Integer
+
+  class Parent(Struct):
+    child = Child
+    value = Integer
+
+  parent = Parent(child=Child(value='{{super.value}}'), value=23)
+  parent, _ = parent.interpolate()
+  assert parent.child().value().get() == 23
+
+  parent = Parent(child=Child(value=23), value='{{child.value}}')
+  parent, _ = parent.interpolate()
+  assert parent.child().value().get() == 23
+
+  parent = Parent(child=Child(value=23), value='{{self.child.value}}')
+  parent, _ = parent.interpolate()
+  assert parent.child().value().get() == 23

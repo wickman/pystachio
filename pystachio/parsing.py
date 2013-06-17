@@ -21,28 +21,28 @@ class MustacheParser(object):
   class Error(Exception): pass
   class Uninterpolatable(Error): pass
 
-  @staticmethod
-  def split(string, keep_aliases=False):
-    splits = MustacheParser._MUSTACHE_RE.split(string)
+  @classmethod
+  def split(cls, string, keep_aliases=False):
+    splits = cls._MUSTACHE_RE.split(string)
     first_split = splits.pop(0)
     outsplits = [first_split] if first_split else []
     assert len(splits) % 3 == 0
     for k in range(0, len(splits), 3):
-      if splits[k] == MustacheParser._ADDRESS_DELIMITER:
+      if splits[k] == cls._ADDRESS_DELIMITER:
         outsplits.append('{{%s%s}}' % (
-            MustacheParser._ADDRESS_DELIMITER if keep_aliases else '',
-            splits[k+1]))
-      elif splits[k] == None:
-        outsplits.append(Ref.from_address(splits[k+1]))
+            cls._ADDRESS_DELIMITER if keep_aliases else '',
+            splits[k + 1]))
+      elif splits[k] is None:
+        outsplits.append(Ref.from_address(splits[k + 1]))
       else:
         raise Exception("Unexpected parsing error in Mustache: splits[%s] = '%s'" % (
           k, splits[k]))
-      if splits[k+2]:
-        outsplits.append(splits[k+2])
+      if splits[k + 2]:
+        outsplits.append(splits[k + 2])
     return outsplits
 
-  @staticmethod
-  def join(splits, *namables):
+  @classmethod
+  def join(cls, splits, *namables):
     """
       Interpolate strings.
 
@@ -62,7 +62,7 @@ class MustacheParser(object):
             value = namable.find(ref)
             resolved = True
             break
-          except Namable.Error as e:
+          except Namable.Error:
             continue
         if resolved:
           isplits.append(value)
@@ -76,15 +76,12 @@ class MustacheParser(object):
   @classmethod
   def resolve(cls, stream, *namables):
     def iterate(st, keep_aliases=True):
-      refs = MustacheParser.split(st, keep_aliases=keep_aliases)
+      refs = cls.split(st, keep_aliases=keep_aliases)
       unbound = [ref for ref in refs if isinstance(ref, Ref)]
-      repl, interps = MustacheParser.join(refs, *namables)
-      rebound = [ref for ref in MustacheParser.split(repl, keep_aliases=keep_aliases)
-                 if isinstance(ref, Ref)]
+      repl, interps = cls.join(refs, *namables)
       return repl, interps, unbound
 
-    iterations = 0
-    for iteration in range(cls.MAX_ITERATIONS):
+    for _ in range(cls.MAX_ITERATIONS):
       stream, interps, unbound = iterate(stream, keep_aliases=True)
       if interps == unbound:
         break

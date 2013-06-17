@@ -253,7 +253,8 @@ class EnumFactory(TypeFactory):
 
 def Enum(*stuff):
   # TODO(wickman) Check input
-  if len(stuff) == 2 and isinstance(stuff[0], Compatibility.stringy) and isinstance(stuff[1], (list, tuple)):
+  if len(stuff) == 2 and isinstance(stuff[0], Compatibility.stringy) and (
+      isinstance(stuff[1], (list, tuple))):
     name, values = stuff
     return TypeFactory.new({}, EnumFactory.PROVIDES, name, values)
   else:

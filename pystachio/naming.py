@@ -1,5 +1,4 @@
 import re
-from itertools import chain
 
 from .compatibility import Compatibility
 
@@ -27,16 +26,17 @@ class Namable(object):
 
   class Unnamable(Error):
     def __init__(self, obj):
-      Namable.Error.__init__(self, 'Object is not indexable: %s' % obj.__class__.__name__)
+      super(Namable.Unnamable, self).__init__('Object is not indexable: %s' %
+          obj.__class__.__name__)
 
   class NamingError(Error):
     def __init__(self, obj, ref):
-      Namable.Error.__init__(self, 'Cannot dereference object %s by %s' % (obj.__class__.__name__,
-        ref.action()))
+      super(Namable.NamingError, self).__init__('Cannot dereference object %s by %s' % (
+          obj.__class__.__name__, ref.action()))
 
   class NotFound(Error):
     def __init__(self, obj, ref):
-      Namable.Error.__init__(self, 'Could not find %s in object %s' % (ref.action().value,
+      super(Namable.NotFound, self).__init__('Could not find %s in object %s' % (ref.action().value,
         obj.__class__.__name__))
 
   def find(self, ref):
@@ -83,11 +83,13 @@ class Ref(object):
 
   class Index(Component):
     RE = re.compile('^[\w\-]+$')
+
     def __repr__(self):
       return '[%s]' % self._value
 
   class Dereference(Component):
     RE = re.compile('^[^\d\W]\w*$')
+
     def __repr__(self):
       return '.%s' % self._value
 

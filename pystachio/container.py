@@ -4,7 +4,7 @@ from inspect import isclass
 
 from .base import Object
 from .compatibility import Compatibility
-from .naming import Namable, Ref, frozendict
+from .naming import Namable, frozendict
 from .typing import (
     Type,
     TypeCheck,
@@ -24,7 +24,7 @@ class ListFactory(TypeFactory):
     klazz = TypeFactory.new(type_dict, *type_parameters[0])
     assert isclass(klazz)
     assert issubclass(klazz, Object)
-    return TypeMetaclass('%sList' % klazz.__name__, (ListContainer,), { 'TYPE': klazz })
+    return TypeMetaclass('%sList' % klazz.__name__, (ListContainer,), {'TYPE': klazz})
 
 
 class ListContainer(Object, Namable, Type):
@@ -148,7 +148,7 @@ class MapFactory(TypeFactory):
     assert isclass(key_klazz) and isclass(value_klazz)
     assert issubclass(key_klazz, Object) and issubclass(value_klazz, Object)
     return TypeMetaclass('%s%sMap' % (key_klazz.__name__, value_klazz.__name__), (MapContainer,),
-      { 'KEYTYPE': key_klazz, 'VALUETYPE': value_klazz })
+      {'KEYTYPE': key_klazz, 'VALUETYPE': value_klazz})
 
 
 # TODO(wickman) Technically it's possible to do the following:

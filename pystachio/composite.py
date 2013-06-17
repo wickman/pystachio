@@ -4,7 +4,7 @@ from inspect import isclass
 import json
 
 from .base import Object, Environment
-from .naming import Ref, Namable, frozendict
+from .naming import Namable, frozendict
 from .typing import (
   Type,
   TypeCheck,
@@ -229,11 +229,14 @@ class Structural(Object, Type, Namable):
     return TypeCheck.success()
 
   def _self_scope(self):
-    return dict((key, value) for (key, value) in self._schema_data.items()
-                if value is not Empty)
+    return Environment(dict((key, value) for (key, value) in self._schema_data.items()
+                       if value is not Empty))
+
+  def _parent_scope(self):
+    return Environment(super=self)
 
   def scopes(self):
-    return (Environment(self._self_scope()),) + self._scopes
+    return (self._self_scope(),) + self._scopes + (self._parent_scope(),)
 
   def interpolate(self):
     unbound = set()
@@ -243,7 +246,7 @@ class Structural(Object, Type, Namable):
       if value is Empty:
         interpolated_schema_data[key] = Empty
       else:
-        vinterp, vunbound = value.in_scope(*scopes).interpolate()
+        vinterp, vunbound = value.in_scope({'self': value}, *scopes).interpolate()
         unbound.update(vunbound)
         interpolated_schema_data[key] = vinterp
     return self.__class__(**interpolated_schema_data), list(unbound)
