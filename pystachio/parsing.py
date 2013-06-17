@@ -29,8 +29,7 @@ class MustacheParser(object):
     assert len(splits) % 3 == 0
     for k in range(0, len(splits), 3):
       if splits[k] == cls._ADDRESS_DELIMITER:
-        outsplits.append('{{%s%s}}' % (
-            cls._ADDRESS_DELIMITER if keep_aliases else '',
+        outsplits.append('{{%s%s}}' % (cls._ADDRESS_DELIMITER if keep_aliases else '',
             splits[k + 1]))
       elif splits[k] is None:
         outsplits.append(Ref.from_address(splits[k + 1]))
@@ -39,7 +38,7 @@ class MustacheParser(object):
           k, splits[k]))
       if splits[k + 2]:
         outsplits.append(splits[k + 2])
-    return outsplits
+    return tuple(outsplits)
 
   @classmethod
   def join(cls, splits, *namables):
@@ -71,7 +70,7 @@ class MustacheParser(object):
           unbound.append(ref)
       else:
         isplits.append(ref)
-    return (''.join(map(str if Compatibility.PY3 else unicode, isplits)), unbound)
+    return (''.join(map(Compatibility.to_str, isplits)), unbound)
 
   @classmethod
   def resolve(cls, stream, *namables):

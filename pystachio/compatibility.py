@@ -7,9 +7,11 @@ class Compatibility(object):
   stringy = (str,)
   if version_info[0] == 2:
     stringy = (str, unicode)
+
   integer = (Integral,)
   real = (Real,)
   numeric = integer + real
+  
   PY2 = version_info[0] == 2
   PY3 = version_info[0] == 3
   if PY3:
@@ -27,3 +29,5 @@ def exec_function(ast, globals_map):
   exec ast in globals_map, locals_map
   return locals_map
 """, "<exec_function>", "exec"))
+
+  to_str = str if PY3 else unicode

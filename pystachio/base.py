@@ -76,11 +76,40 @@ class Environment(Namable):
     return 'Environment(%s)' % pformat(self._table)
 
 
+class ObjectFragment(object):
+  class InterpolationError(Exception): pass
+
+  __slots__ = ('_fragments', '_target_cls')
+
+  @classmethod
+  def resolve_fragment(cls, fragment, scopes):
+    if not isinstance(fragment, Ref):
+      return fragment
+    for scope in scopes:
+      try:
+        return scope.find(fragment)
+      except scope.NamableError:
+        continue
+    return fragment
+
+  def __init__(self, fragments, target_cls):
+    self._fragments = fragments
+    self._target_cls = target_cls
+
+  def interpolate(self, scopes):
+    fragments = [self.resolve_fragment(fragment, scopes) for fragment in self._fragments]
+    if len(fragments) == 1:
+      if isinstance(fragments[0], self._target_cls):
+        return fragments[0], []
+    return (''.join(Compatibility.to_str(fragment) for fragment in fragments),
+        [fragment for fragment in fragments if isinstance(fragment, Ref)])
+    
+
 class Object(object):
   """
     Object base class, encapsulating a set of variable bindings scoped to this object.
   """
-  __slots__ = ('_scopes',)
+  __slots__ = ('_scopes', '_value')
 
   class CoercionError(ValueError):
     def __init__(self, src, dst, message=None):
@@ -90,41 +119,62 @@ class Object(object):
   class InterpolationError(Exception): pass
 
   @classmethod
-  def checker(cls, obj):
+  def translate_to_scopes(cls, *args, **kw):
+    scopes = [arg if isinstance(arg, Namable) else Environment.wrap(arg) for arg in args]
+    if kw:
+      scopes.append(Environment(kw))
+    return tuple(scopes)
+
+  @classmethod
+  def coerce(cls, obj):
+    """Coerce the given object into the required type.  Raises CoercionError on incompatible
+       objects."""
+    return obj
+
+  @classmethod
+  def unwrap(cls, *args, **kw):
+    """Convert constructor argument into a value."""
     raise NotImplementedError
 
-  def __init__(self):
+  @classmethod
+  def apply(cls, *args, **kw):
+    if len(args) == 1 and isinstance(args[0], Compatibility.stringy):
+      return ObjectFragment(MustacheParser.split(args[0], keep_aliases=True), cls)
+    return cls.unwrap(*args, **kw)
+  
+  def __init__(self, *args, **kw):
+    self._value = self.apply(*args, **kw)
     self._scopes = ()
 
   def get(self):
-    raise NotImplementedError
+    if isinstance(self._value, ObjectFragment):
+      resolved, refs = self._value.interpolate(self.scopes())
+    else:
+      resolved, refs = self.interpolate()
+    return resolved if refs else self.coerce(resolved._value)
 
   def __hash__(self):
     si, _ = self.interpolate()
     return hash(si.get())
 
-  def copy(self):
+  def __copy__(self):
     """
       Return a copy of this object.
     """
-    self_copy = self.dup()
+    self_copy = self.__class__.__new__(self.__class__)
+    self_copy._value = copy.copy(self._value)
     self_copy._scopes = copy.copy(self._scopes)
     return self_copy
 
-  @staticmethod
-  def translate_to_scopes(*args, **kw):
-    scopes = [arg if isinstance(arg, Namable) else Environment.wrap(arg)
-              for arg in args]
-    if kw:
-      scopes.append(Environment(kw))
-    return tuple(scopes)
+  def copy(self):
+    return copy.copy(self)
 
   def bind(self, *args, **kw):
     """
       Bind environment variables into this object's scope.
     """
     new_self = self.copy()
-    new_scopes = Object.translate_to_scopes(*args, **kw)
+    new_scopes = self.translate_to_scopes(*args, **kw)
     new_self._scopes = tuple(reversed(new_scopes)) + new_self._scopes
     return new_self
 
@@ -133,23 +183,12 @@ class Object(object):
       Scope this object to a parent environment (like bind but reversed.)
     """
     new_self = self.copy()
-    new_scopes = Object.translate_to_scopes(*args, **kw)
+    new_scopes = self.translate_to_scopes(*args, **kw)
     new_self._scopes = new_self._scopes + new_scopes
     return new_self
 
   def scopes(self):
     return self._scopes
-
-  def check(self):
-    """
-      Type check this object.
-    """
-    try:
-      si, uninterp = self.interpolate()
-    # TODO(wickman) This should probably be pushed out to the interpolate leaves.
-    except (Object.CoercionError, MustacheParser.Uninterpolatable) as e:
-      return TypeCheck(False, "Unable to interpolate: %s" % e)
-    return self.checker(si)
 
   def __ne__(self, other):
     return not (self == other)
