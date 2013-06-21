@@ -5,9 +5,9 @@ import json
 
 from .base import Object, Environment
 from .naming import Namable, frozendict
+from .proxy import ObjectProxy
 from .typing import (
   Type,
-  TypeCheck,
   TypeFactory,
   TypeMetaclass)
 
@@ -34,7 +34,8 @@ class TypeSignature(object):
 
   def serialize(self):
     return (self.required,
-            self.default.get() if not self.empty else (),
+            # TODO(wickman) Expose
+            self.default._value if not self.empty else (),
             self.empty,
             self.klazz.serialize_type())
 
@@ -147,60 +148,89 @@ class StructMetaclass(type):
       return type.__new__(mcs, name, parents, attributes)
 
 
+class FrozenStructural(frozendict):
+  def __init__(self, name, typemap, *args, **kw):
+    self.__name = name
+    self.__typemap = typemap
+    super(FrozenStructural, self).__init__(*args, **kw)
+
+  def __key(self):
+    return tuple((k, self[k]) for k in sorted(self))
+
+  def __getattr__(self, attribute):
+    if attribute.startswith('has_'):
+      attribute = attribute[4:]
+      if attribute not in self.__typemap:
+        return lambda: False
+      else:
+        return lambda: attribute in self
+    if attribute not in self.__typemap:
+      raise AttributeError("type object '%s' has no attribute '%s'" % (
+        self.__class__.__name__, attribute))
+    return self.get(attribute, None)
+
+  def __hash__(self):
+    return hash(self.__key())
+
+  def __eq__(self, other):
+    return self.__key() == other.__key()
+
+  def __repr__(self):
+    return '%s(%s)' % (
+      self.__name, ', '.join('%s=%s' % (key, val) for key, val in self.items()))
+
+
 StructMetaclassWrapper = StructMetaclass('StructMetaclassWrapper', (object,), {})
 class Structural(Object, Type, Namable):
   """A Structural base type for composite objects."""
-  __slots__ = ('_schema_data',)
-
-  def __init__(self, *args, **kw):
-    self._schema_data = frozendict((attr, value.default) for (attr, value) in self.TYPEMAP.items())
+  @classmethod
+  def init(cls, *args, **kw):
+    value = frozendict((attr, value.default) for (attr, value) in cls.TYPEMAP.items())
     for arg in args:
       if not isinstance(arg, Mapping):
         raise ValueError('Expected dictionary argument, got %s' % repr(arg))
-      self._update_schema_data(**arg)
-    self._update_schema_data(**copy.copy(kw))
-    super(Structural, self).__init__()
+      cls._update_value(value, **arg)
+    cls._update_value(value, **copy.copy(kw))
+    return value
 
-  def get(self):
-    return frozendict((k, v.get()) for k, v in self._schema_data.items() if v is not Empty)
-
-  def _process_schema_attribute(self, attr, value):
-    if attr not in self.TYPEMAP:
+  @classmethod
+  def _process_schema_attribute(cls, attr, __value):
+    if attr not in cls.TYPEMAP:
       raise AttributeError('Unknown schema attribute %s' % attr)
-    schema_type = self.TYPEMAP[attr]
-    if value is Empty:
+    schema_type = cls.TYPEMAP[attr]
+    if __value is Empty:
       return Empty
-    elif isinstance(value, schema_type.klazz):
-      return value
+    elif isinstance(__value, schema_type.klazz):
+      return __value
     else:
-      return schema_type.klazz(value)
+      return schema_type.klazz(__value)
 
-  def _update_schema_data(self, **kw):
+  @classmethod
+  def _update_value(cls, __value, **kw):
     for attr, value in kw.items():
-      self._schema_data[attr] = self._process_schema_attribute(attr, value)
-
-  def dup(self):
-    return self.__class__(**self._schema_data)
+      __value[attr] = cls._process_schema_attribute(attr, value)
 
   def __call__(self, **kw):
     new_self = self.copy()
-    new_self._update_schema_data(**copy.copy(kw))
+    self._update_value(new_self._value, **copy.copy(kw))
     return new_self
 
   def __eq__(self, other):
-    if not isinstance(other, Structural): return False
-    if self.TYPEMAP != other.TYPEMAP: return False
-    si = self.interpolate()
-    oi = other.interpolate()
-    return si[0]._schema_data == oi[0]._schema_data
+    if not isinstance(other, Structural):
+      return False
+    if self.TYPEMAP != other.TYPEMAP:
+      return False
+    si, si_refs = self.interpolate()
+    oi, oi_refs = other.interpolate()
+    return si == oi and si_refs == oi_refs
 
   def __repr__(self):
     si, _ = self.interpolate()
-    return '%s(%s)' % (
-      self.__class__.__name__,
-      (',\n%s' % (' ' * (len(self.__class__.__name__) + 1))).join(
-          '%s=%s' % (key, val) for key, val in si._schema_data.items() if val is not Empty)
-    )
+    if isinstance(si, dict):
+      return '%s(%s)' % (self.__class__.__name__,
+          ', '.join('%s=%s' % (key, val) for key, val in si.items() if val is not Empty))
+    else:
+      return '%s(%s)' % (self.__class__.__name__, si)
 
   def __getattr__(self, attr):
     if not hasattr(self, 'TYPEMAP'):
@@ -208,28 +238,15 @@ class Structural(Object, Type, Namable):
 
     if attr.startswith('has_'):
       if attr[4:] in self.TYPEMAP:
-        return lambda: self._schema_data[attr[4:]] != Empty
+        return lambda: self._value[attr[4:]] != Empty
 
     if attr not in self.TYPEMAP:
       raise AttributeError("%s has no attribute %s" % (self.__class__.__name__, attr))
 
     return lambda: self.interpolate_key(attr)
 
-  def check(self):
-    for name, signature in self.TYPEMAP.items():
-      if self._schema_data[name] is Empty and signature.required:
-        return TypeCheck.failure('%s[%s] is required.' % (self.__class__.__name__, name))
-      elif self._schema_data[name] is not Empty:
-        type_check = self._schema_data[name].in_scope(*self.scopes()).check()
-        if type_check.ok():
-          continue
-        else:
-          return TypeCheck.failure('%s[%s] failed: %s' % (self.__class__.__name__, name,
-            type_check.message()))
-    return TypeCheck.success()
-
   def _self_scope(self):
-    return Environment(dict((key, value) for (key, value) in self._schema_data.items()
+    return Environment(dict((key, value) for (key, value) in self._value.items()
                        if value is not Empty))
 
   def _parent_scope(self):
@@ -239,22 +256,23 @@ class Structural(Object, Type, Namable):
     return (self._self_scope(),) + self._scopes + (self._parent_scope(),)
 
   def interpolate(self):
+    if isinstance(self._value, ObjectProxy):
+      return self._value.interpolate(self._scopes)
     unbound = set()
-    interpolated_schema_data = {}
+    interpolated_value = {}
     scopes = self.scopes()
-    for key, value in self._schema_data.items():
-      if value is Empty:
-        interpolated_schema_data[key] = Empty
-      else:
+    for key, value in self._value.items():
+      if value is not Empty:
         vinterp, vunbound = value.in_scope({'self': value}, *scopes).interpolate()
         unbound.update(vunbound)
-        interpolated_schema_data[key] = vinterp
-    return self.__class__(**interpolated_schema_data), list(unbound)
+        interpolated_value[key] = vinterp
+    return FrozenStructural('Frozen%s' % self.__class__.__name__,
+        self.TYPEMAP, interpolated_value), list(unbound)
 
   def interpolate_key(self, attribute):
-    if self._schema_data[attribute] is Empty:
+    if self._value[attribute] is Empty:
       return Empty
-    vinterp, _ = self._schema_data[attribute].in_scope(*self.scopes()).interpolate()
+    vinterp, _ = self._value[attribute].in_scope({'self': self}, *self.scopes()).interpolate()
     return self._process_schema_attribute(attribute, vinterp)
 
   @classmethod
@@ -294,10 +312,10 @@ class Structural(Object, Type, Namable):
     if not ref.is_dereference():
       raise Namable.NamingError(self, ref)
     name = ref.action().value
-    if name not in self.TYPEMAP or self._schema_data[name] is Empty:
+    if name not in self.TYPEMAP or self._value[name] is Empty:
       raise Namable.NotFound(self, ref)
     else:
-      namable = self._schema_data[name]
+      namable = self._value[name]
       if ref.rest().is_empty():
         return namable.in_scope(*self.scopes())
       else:

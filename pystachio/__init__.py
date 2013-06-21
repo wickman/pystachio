@@ -27,5 +27,4 @@ from .naming import Namable, Ref
 from .parsing import MustacheParser
 from .typing import (
     Type,
-    TypeCheck,
     TypeFactory)

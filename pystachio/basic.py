@@ -1,10 +1,9 @@
 from .base import Object
 from .compatibility import Compatibility
-from .fragment import StringFragment
+from .proxy import ObjectProxy
 from .parsing import MustacheParser
 from .typing import (
     Type,
-    TypeCheck,
     TypeFactory,
     TypeMetaclass)
 
@@ -14,7 +13,7 @@ class SimpleObject(Object, Type):
     A simply-valued (unnamable) object.
   """
   @classmethod
-  def unwrap(cls, value):
+  def init(cls, value):
     return value
 
   def _my_cmp(self, other):
@@ -22,9 +21,9 @@ class SimpleObject(Object, Type):
       return -1
     si, _ = self.interpolate()
     oi, _ = other.interpolate()
-    if si._value < oi._value:
+    if si < oi:
       return -1
-    elif si._value > oi._value:
+    elif si > oi:
       return 1
     else:
       return 0
@@ -49,22 +48,20 @@ class SimpleObject(Object, Type):
 
   def __unicode__(self):
     si, _ = self.interpolate()
-    return unicode(si._value)
+    return unicode(si)
 
   def __str__(self):
     si, _ = self.interpolate()
-    return str(si._value)
+    return str(si)
 
   def __repr__(self):
-    try:
-      value = self.get()
-    except self.InterpolationError:
-      value, _ = MustacheParser.join(self._fragments, *self.scopes())
-    return '%s(%s)' % (self.__class__.__name__, value)
-       
-  # Unify interpolate() and apply()
+    return '%s(%s)' % (self.__class__.__name__, self)
+
   def interpolate(self):
-    return self.__class__(self._value), []
+    if isinstance(self._value, ObjectProxy):
+      value, refs = self._value.interpolate(self.scopes())
+      return value if refs else self.coerce(value), refs
+    return self.coerce(self._value), []
 
   @classmethod
   def type_factory(cls):
@@ -78,8 +75,6 @@ class SimpleObject(Object, Type):
 class String(SimpleObject):
   @classmethod
   def coerce(cls, value):
-    if isinstance(value, String):
-      return cls.coerce(value._value)
     ACCEPTED_SOURCE_TYPES = Compatibility.stringy + Compatibility.numeric
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise cls.CoercionError(value, cls)
@@ -96,8 +91,6 @@ class StringFactory(TypeFactory):
 class Integer(SimpleObject):
   @classmethod
   def coerce(cls, value):
-    if isinstance(value, Integer):
-      return cls.coerce(value._value)
     ACCEPTED_SOURCE_TYPES = Compatibility.numeric + Compatibility.stringy
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise cls.CoercionError(value, cls)
@@ -117,8 +110,6 @@ class IntegerFactory(TypeFactory):
 class Float(SimpleObject):
   @classmethod
   def coerce(cls, value):
-    if isinstance(value, Float):
-      return cls.coerce(value._value)
     ACCEPTED_SOURCE_TYPES = Compatibility.numeric + Compatibility.stringy
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise cls.CoercionError(value, cls)
@@ -137,8 +128,6 @@ class FloatFactory(TypeFactory):
 class Boolean(SimpleObject):
   @classmethod
   def coerce(cls, value):
-    if isinstance(value, Boolean):
-      return cls.coerce(value._value)
     ACCEPTED_SOURCE_TYPES = (bool,) + Compatibility.numeric + Compatibility.stringy
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise cls.CoercionError(value, cls)
@@ -165,8 +154,6 @@ class BooleanFactory(TypeFactory):
 class EnumContainer(SimpleObject):
   @classmethod
   def coerce(cls, value):
-    if isinstance(value, EnumConatiner):
-      return cls.coerce(value._value)
     if not isinstance(value, Compatibility.stringy) or value not in cls.VALUES:
       raise cls.CoercionError(value, cls, '%s is not one of %s' % (
         value, ', '.join(cls.VALUES)))

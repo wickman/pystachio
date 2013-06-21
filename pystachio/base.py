@@ -4,7 +4,7 @@ from pprint import pformat
 from .compatibility import Compatibility
 from .naming import Namable, Ref
 from .parsing import MustacheParser
-from .typing import TypeCheck
+from .proxy import ObjectProxy
 
 
 class Environment(Namable):
@@ -76,47 +76,25 @@ class Environment(Namable):
     return 'Environment(%s)' % pformat(self._table)
 
 
-class ObjectFragment(object):
-  class InterpolationError(Exception): pass
-
-  __slots__ = ('_fragments', '_target_cls')
-
-  @classmethod
-  def resolve_fragment(cls, fragment, scopes):
-    if not isinstance(fragment, Ref):
-      return fragment
-    for scope in scopes:
-      try:
-        return scope.find(fragment)
-      except scope.NamableError:
-        continue
-    return fragment
-
-  def __init__(self, fragments, target_cls):
-    self._fragments = fragments
-    self._target_cls = target_cls
-
-  def interpolate(self, scopes):
-    fragments = [self.resolve_fragment(fragment, scopes) for fragment in self._fragments]
-    if len(fragments) == 1:
-      if isinstance(fragments[0], self._target_cls):
-        return fragments[0], []
-    return (''.join(Compatibility.to_str(fragment) for fragment in fragments),
-        [fragment for fragment in fragments if isinstance(fragment, Ref)])
-    
-
 class Object(object):
   """
     Object base class, encapsulating a set of variable bindings scoped to this object.
   """
   __slots__ = ('_scopes', '_value')
 
-  class CoercionError(ValueError):
+  class Error(Exception): pass
+
+  class CoercionError(ValueError, Error):
     def __init__(self, src, dst, message=None):
       error = "Cannot coerce '%s' to %s" % (src, dst.__name__)
       ValueError.__init__(self, '%s: %s' % (error, message) if message else error)
 
-  class InterpolationError(Exception): pass
+  class InterpolationError(Error): pass
+
+  class UnboundRefError(Error):
+    def __init__(self, refs):
+      super(Object.UnboundRefError, self).__init__(
+          'Unbound refs: %s' % ' '.join(map(Compatibility.to_str, refs)))
 
   @classmethod
   def translate_to_scopes(cls, *args, **kw):
@@ -132,30 +110,31 @@ class Object(object):
     return obj
 
   @classmethod
-  def unwrap(cls, *args, **kw):
+  def init(cls, *args, **kw):
     """Convert constructor argument into a value."""
     raise NotImplementedError
 
   @classmethod
   def apply(cls, *args, **kw):
     if len(args) == 1 and isinstance(args[0], Compatibility.stringy):
-      return ObjectFragment(MustacheParser.split(args[0], keep_aliases=True), cls)
-    return cls.unwrap(*args, **kw)
-  
+      fragments = MustacheParser.split(args[0], keep_aliases=True)
+      if any(isinstance(fragment, Ref) for fragment in fragments):
+        return ObjectProxy(fragments, cls)
+    return cls.init(*args, **kw)
+
   def __init__(self, *args, **kw):
     self._value = self.apply(*args, **kw)
     self._scopes = ()
 
   def get(self):
-    if isinstance(self._value, ObjectFragment):
-      resolved, refs = self._value.interpolate(self.scopes())
-    else:
-      resolved, refs = self.interpolate()
-    return resolved if refs else self.coerce(resolved._value)
+    resolved_value, refs = self.interpolate()
+    if refs:
+      raise self.UnboundRefError(refs)
+    return resolved_value
 
   def __hash__(self):
     si, _ = self.interpolate()
-    return hash(si.get())
+    return hash(si)
 
   def __copy__(self):
     """

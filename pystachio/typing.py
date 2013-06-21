@@ -1,38 +1,6 @@
 from .naming import frozendict
 
 
-class TypeCheck(object):
-  """
-    Encapsulate the results of a type check pass.
-  """
-  class Error(Exception):
-    pass
-
-  @staticmethod
-  def success():
-    return TypeCheck(True, "")
-
-  @staticmethod
-  def failure(msg):
-    return TypeCheck(False, msg)
-
-  def __init__(self, success, message):
-    self._success = success
-    self._message = message
-
-  def message(self):
-    return self._message
-
-  def ok(self):
-    return self._success
-
-  def __repr__(self):
-    if self.ok():
-      return 'TypeCheck(OK)'
-    else:
-      return 'TypeCheck(FAILED): %s' % self._message
-
-
 class TypeFactoryType(type):
   _TYPE_FACTORIES = {}
 
@@ -155,10 +123,3 @@ class Type(object):
   def dump(cls, fp):
     import json
     json.dump(cls.serialize_type(), fp)
-
-  def check(self):
-    """
-      Returns a TypeCheck object explaining whether or not a particular
-      instance of this object typechecks.
-    """
-    raise NotImplementedError
