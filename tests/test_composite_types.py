@@ -213,9 +213,17 @@ def test_self_super():
     child = Child
     value = Integer
 
+  class Grandparent(Struct):
+    parent = Parent
+    value = Integer
+
   parent = Parent(child=Child(value='{{super.value}}'), value=23)
   parent, _ = parent.interpolate()
   assert parent.child().value().get() == 23
+
+  grandparent = Grandparent(parent=Parent(child=Child(value='{{super.super.value}}')), value=23)
+  grandparent, _ = grandparent.interpolate()
+  assert grandparent.parent().child().value().get() == 23
 
   parent = Parent(child=Child(value=23), value='{{child.value}}')
   parent, _ = parent.interpolate()
