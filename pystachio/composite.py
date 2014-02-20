@@ -4,6 +4,7 @@ from inspect import isclass
 import json
 
 from .base import Object, Environment
+from .compatibility import Compatibility
 from .naming import Namable, Ref, frozendict
 from .typing import (
   Type,
@@ -21,6 +22,12 @@ class TypeSignature(object):
   """
     Type metadata for composite type schemas.
   """
+  @classmethod
+  def wrap(cls, sig):
+    if isclass(sig) and issubclass(sig, Object):
+      return cls(sig)
+    elif isinsta(sig, cls):
+      return sig
 
   def __init__(self, cls, required=False, default=Empty):
     assert isclass(cls)
@@ -76,12 +83,6 @@ class TypeSignature(object):
   def empty(self):
     return self._default is Empty
 
-  @staticmethod
-  def wrap(sig):
-    if isclass(sig) and issubclass(sig, Object):
-      return TypeSignature(sig)
-    elif isinstance(sig, TypeSignature):
-      return sig
 
 
 def Required(cls):
@@ -147,10 +148,55 @@ class StructMetaclass(type):
       return type.__new__(mcs, name, parents, attributes)
 
 
-StructMetaclassWrapper = StructMetaclass('StructMetaclassWrapper', (object,), {})
 class Structural(Object, Type, Namable):
   """A Structural base type for composite objects."""
   __slots__ = ('_schema_data',)
+
+  @classmethod
+  def extend(cls, *args, **kw):
+    """Extend an existing structure.
+
+       If the first argument is a string, this is the new name of the type,
+       otherwise it will use the name of the existing type.
+
+       All subsequent arguments will be merged in.  Keyword arguments will
+       be merged as name, attribute pairs.
+
+       ex:
+
+         class Task(Struct):
+           cmdline = String
+
+         class Namable(Struct):
+           name = Required(String)
+
+         Task = Task.extend(Namable)
+         Task = Task.extend(name = Required(String))
+         NamableTask = Task.extend('NamableTask', Namable)
+         NamableTask = Task.extend('NamableTask', name = Required(String))
+    """
+    new_typemap = cls.TYPEMAP.copy()
+
+    if isinstance(args[0], Compatibility.stringy):
+      new_name, args = args[0], args[1:]
+    else:
+      new_name = cls.__name__
+
+    for arg in args:
+      if not issubclass(arg, Structural):
+        raise TypeError('Can only extend structs with other structs.')
+      for name in arg.TYPEMAP:
+        if name in new_typemap:
+          raise ValueError('Shadowing attributes is not allowed: %s shadowed.' % name)
+      new_typemap.update(arg.TYPEMAP)
+
+    for name in kw:
+      if name in cls.TYPEMAP:
+        raise ValueError('Shadowing attributes is not allowed: %s shadowed.' % name)
+    new_typemap.update((name, TypeSignature.wrap(sig)) for (name, sig) in kw.items())
+
+    return StructMetaclass.__new__(StructMetaclass, new_name, (Struct,), new_typemap)
+
 
   def __init__(self, *args, **kw):
     self._schema_data = frozendict((attr, value.default) for (attr, value) in self.TYPEMAP.items())
@@ -310,6 +356,7 @@ class Structural(Object, Type, Namable):
           return namable.in_scope(*self.scopes()).find(ref.rest())
 
 
+StructMetaclassWrapper = StructMetaclass('StructMetaclassWrapper', (object,), {})
 class Struct(StructMetaclassWrapper, Structural):
   """
     Schema-based composite objects, e.g.
@@ -331,4 +378,3 @@ class Struct(StructMetaclassWrapper, Structural):
       >>> brian
       Employee(first=String(brian))
   """
-  pass
