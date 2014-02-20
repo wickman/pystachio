@@ -7,22 +7,18 @@
 # ./setup.sh python2.6 python2.7 python3.2 pypy-1.6
 #
 
-VEV=1.8.2
-MY_DIR=$(dirname $0)
-BASE_DIR=$MY_DIR
+BASE_DIR=$(dirname $0)
 
-mkdir .virtualenv.cache
-pushd .virtualenv.cache
-  if ! test -f virtualenv-$VEV.tar.gz; then
-    wget http://pypi.python.org/packages/source/v/virtualenv/virtualenv-$VEV.tar.gz
-  fi
-  gzip -cd virtualenv-$VEV.tar.gz | tar -xvf -
-popd
+if [[ -z $* ]]; then
+  echo "You should input an interpreter."
+  exit 1
+fi
 
 for bin in $*; do
-  cat <<EOF | $bin - > .target
+  cat <<EOF | $bin - > $BASE_DIR/.target
 import sys
-print(".virtualenv-%s-%s.%s"%(sys.subversion[0],sys.version_info[0],sys.version_info[1]))
+subversion = getattr(sys, 'subversion', ['CPython'])[0]
+print(".virtualenv-%s-%s.%s"%(subversion,sys.version_info[0],sys.version_info[1]))
 EOF
   TARGET=$BASE_DIR/$(cat .target)
   echo Installing into $TARGET
@@ -30,7 +26,11 @@ EOF
     echo Cleaning original virtualenv
     rm -rf $TARGET
   fi
-  $bin .virtualenv.cache/virtualenv-$VEV/virtualenv.py --distribute $TARGET
-  $TARGET/bin/pip install --download-cache=.virtualenv.cache pytest pytest-cov pytest-xdist
+  python -m virtualenv -p $bin $TARGET
+  pushd $TARGET
+    source bin/activate
+    pip install pytest pytest-cov pytest-xdist
+    deactivate
+  popd
 done
-rm -f .target
+rm -f $BASE_DIR/.target
