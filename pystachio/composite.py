@@ -26,7 +26,7 @@ class TypeSignature(object):
   def wrap(cls, sig):
     if isclass(sig) and issubclass(sig, Object):
       return cls(sig)
-    elif isinsta(sig, cls):
+    elif isinstance(sig, cls):
       return sig
 
   def __init__(self, cls, required=False, default=Empty):
