@@ -3,7 +3,7 @@
 *.egg-info
 build/*
 dist/*
-.virtualenv*
+.tox
 .coverage
-htmlcov
+tests/htmlcov
 TODO
