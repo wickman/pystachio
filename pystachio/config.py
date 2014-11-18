@@ -1,4 +1,6 @@
+import ast
 import os
+import sys
 
 from .compatibility import Compatibility
 
@@ -11,6 +13,9 @@ except ImportError:
 class ConfigContext(object):
   ROOT = ''
 
+  class Error(Exception): pass
+  class StrictModeViolation(Error): pass
+
   # Make JSON-friendly keys -- since JSON can't encode tuples as dictionary keys.
   @classmethod
   def key(cls, from_path, include_string):
@@ -20,12 +25,31 @@ class ConfigContext(object):
   def from_key(cls, key):
     return key.split('\0')
 
-  def __init__(self, environment, loadables):
+  @classmethod
+  def sanitize(cls, blob, from_path):
+    warnings = []
+    for node in ast.walk(ast.parse(blob, from_path)):
+      if isinstance(node, ast.Import):
+        warnings.append('Imports not allowed: %s' % ' '.join(alias.name for alias in node.names))
+      elif isinstance(node, ast.ImportFrom):
+        warnings.append('Imports not allowed: %s' % node.module)
+    return warnings
+
+  def __init__(self, environment, loadables, strict=False):
     self.environment = environment
     self.loadables = loadables
+    self.warnings = []
+    self.strict = strict
 
   def compile(self, from_path, include_string, data):
     self.loadables[self.key(from_path, include_string)] = data
+
+    warnings = self.sanitize(data, from_path)
+    self.warnings.extend(warnings)
+
+    if warnings and self.strict:
+      raise self.StrictModeViolation('Found %d config violations.' % len(warnings))
+
     Compatibility.exec_function(compile(data, include_string, 'exec'), self.environment)
 
 
@@ -154,17 +178,19 @@ class Config(object):
     Compatibility.exec_function(
         compile(schema or cls.DEFAULT_SCHEMA, "<exec_function>", "exec"), environment)
 
-  def __init__(self, loadable, schema=None):
+  def __init__(self, loadable, schema=None, strict=False, out=sys.stderr):
     self._environment = {}
     self._loadables = {}
     self.load_schema(self._environment, schema)
     root_executor, initial_config = self.choose_executor(loadable)
-    context = ConfigContext(self._environment, self._loadables)
+    context = ConfigContext(self._environment, self._loadables, strict=strict)
     self._environment.update(include=lambda fn: root_executor(fn, context))
     try:
       root_executor(initial_config, context)
-    except (SyntaxError, ValueError) as e:
+    except (SyntaxError, ValueError, ConfigContext.Error) as e:
       raise self.InvalidConfigError(str(e))
+    for warning in context.warnings:
+      out.write(u'Warning: %s\n' % warning)
 
   @property
   def loadables(self):

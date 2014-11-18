@@ -1,5 +1,5 @@
 import contextlib
-from io import BytesIO
+from io import BytesIO, StringIO
 import json
 import os
 import shutil
@@ -98,3 +98,30 @@ def test_filelike_config():
   with pytest.raises(Config.InvalidConfigError):
     config = Config(BytesIO(foo))
 
+
+def test_strict_mode():
+  sio = StringIO()
+  foo = b"a = 'Hello'"
+  config = Config(BytesIO(foo), strict=False, out=sio)
+  assert config.environment['a'] == 'Hello'
+  assert sio.getvalue() == ''
+
+  sio = StringIO()
+  config = Config(BytesIO(foo), strict=True, out=sio)
+  assert config.environment['a'] == 'Hello'
+  assert sio.getvalue() == ''
+
+  sio = StringIO()
+  foo = b"import os; a = 'Hello'"
+  config = Config(BytesIO(foo), strict=False, out=sio)
+  assert config.environment['a'] == 'Hello'
+  assert sio.getvalue() == 'Warning: Imports not allowed: os\n'
+
+  sio = StringIO()
+  foo = b"from os import path; a = 'Hello'"
+  config = Config(BytesIO(foo), strict=False, out=sio)
+  assert config.environment['a'] == 'Hello'
+  assert sio.getvalue() == 'Warning: Imports not allowed: os\n'
+
+  with pytest.raises(Config.InvalidConfigError):
+    Config(BytesIO(foo), strict=True)
