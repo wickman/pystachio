@@ -8,16 +8,9 @@ from pystachio.basic import *
 from pystachio.container import *
 from pystachio.composite import *
 
+
 def ref(address):
   return Ref.from_address(address)
-
-
-def test_reprs():
-  fd = frozendict(a = 1, b = 2)
-  assert repr(fd) == "frozendict({'a': 1, 'b': 2})"
-  env = Environment(fd)
-  repr(env)
-
 
 
 def test_ref_parsing():
@@ -38,7 +31,6 @@ def test_ref_parsing():
   for refstr in ('a-b', '-b', 'a-'):
     with pytest.raises(Ref.InvalidRefError):
       ref(refstr)
-
 
 
 def test_ref_lookup():
