@@ -85,6 +85,37 @@ def test_includes():
   assert config.loadables == config2.loadables
 
 
+def test_transitive_includes():
+  layout = {
+    'conf/a.config':
+      """
+      include("../b.config")
+      a = b
+      """,
+
+    'b.config':
+      """
+      include('common/c.config')
+      b = "Hello"
+      """,
+    
+    'common/c.config':
+      """
+      c = "Blerp"
+      """
+  }
+
+  def k(a, b):
+    return ConfigContext.key(a, b)
+
+  with make_layout(layout) as td:
+    with pushd(td):
+      config = Config('conf/a.config')
+      assert config.environment['a'] == 'Hello'
+      assert config.environment['b'] == 'Hello'
+      assert config.environment['c'] == 'Blerp'
+
+
 def test_filelike_config():
   foo = b"a = 'Hello'"
   config = Config(BytesIO(foo))
