@@ -100,28 +100,24 @@ def test_filelike_config():
 
 
 def test_strict_mode():
-  sio = StringIO()
   foo = b"a = 'Hello'"
-  config = Config(BytesIO(foo), strict=False, out=sio)
+  config = Config(BytesIO(foo), strict=False)
   assert config.environment['a'] == 'Hello'
-  assert sio.getvalue() == ''
+  assert config.warnings == []
 
-  sio = StringIO()
-  config = Config(BytesIO(foo), strict=True, out=sio)
+  config = Config(BytesIO(foo), strict=True)
   assert config.environment['a'] == 'Hello'
-  assert sio.getvalue() == ''
+  assert config.warnings == []
 
-  sio = StringIO()
   foo = b"import os; a = 'Hello'"
-  config = Config(BytesIO(foo), strict=False, out=sio)
+  config = Config(BytesIO(foo), strict=False)
   assert config.environment['a'] == 'Hello'
-  assert sio.getvalue() == 'Warning: Imports not allowed: os\n'
+  assert config.warnings == ['Imports not allowed: os']
 
-  sio = StringIO()
   foo = b"from os import path; a = 'Hello'"
-  config = Config(BytesIO(foo), strict=False, out=sio)
+  config = Config(BytesIO(foo), strict=False)
   assert config.environment['a'] == 'Hello'
-  assert sio.getvalue() == 'Warning: Imports not allowed: os\n'
+  assert config.warnings == ['Imports not allowed: os']
 
   with pytest.raises(Config.InvalidConfigError):
     Config(BytesIO(foo), strict=True)

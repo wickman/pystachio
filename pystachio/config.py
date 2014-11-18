@@ -178,7 +178,7 @@ class Config(object):
     Compatibility.exec_function(
         compile(schema or cls.DEFAULT_SCHEMA, "<exec_function>", "exec"), environment)
 
-  def __init__(self, loadable, schema=None, strict=False, out=sys.stderr):
+  def __init__(self, loadable, schema=None, strict=False):
     self._environment = {}
     self._loadables = {}
     self.load_schema(self._environment, schema)
@@ -188,9 +188,10 @@ class Config(object):
     try:
       root_executor(initial_config, context)
     except (SyntaxError, ValueError, ConfigContext.Error) as e:
+      self.warnings = context.warnings[:]
       raise self.InvalidConfigError(str(e))
-    for warning in context.warnings:
-      out.write(u'Warning: %s\n' % warning)
+    else:
+      self.warnings = context.warnings[:]
 
   @property
   def loadables(self):
