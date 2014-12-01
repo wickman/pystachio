@@ -104,13 +104,22 @@ class LoadableMapExecutor(ConfigExecutor):
         return config_file
 
   @classmethod
+  def from_filename(cls, stack):
+    base = ''
+    for filename in stack:
+      base = os.path.join(os.path.dirname(base), filename)
+    return base
+
+  @classmethod
   def get(cls, loadable):
     deposit_stack = [cls.ROOT]
+
     def ast_executor(config_file, context):
-      from_file = deposit_stack[-1]
+      from_file = cls.from_filename(deposit_stack)
       deposit_stack.append(config_file)
       context.compile(from_file, config_file, loadable[ConfigContext.key(from_file, config_file)])
       deposit_stack.pop()
+
     return ast_executor, cls.find_root_file(loadable)
 
 

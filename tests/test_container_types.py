@@ -123,8 +123,8 @@ def test_map_find():
 def test_map_iteration():
   mi = Map(String,Integer)({'a': 1, 'b': 2})
   miter = iter(mi)
-  assert next(miter) == String('a')
-  assert next(miter) == String('b')
+  assert next(miter) in (String('a'), String('b'))
+  assert next(miter) in (String('a'), String('b'))
   with pytest.raises(StopIteration):
     next(miter)
 
