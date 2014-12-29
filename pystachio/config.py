@@ -1,4 +1,5 @@
 import os
+from functools import reduce
 
 from .compatibility import Compatibility
 
@@ -6,6 +7,10 @@ try:
   import pkg_resources
 except ImportError:
   pkg_resources = None
+
+
+def relativize(from_path, include_path):
+  return os.path.join(os.path.dirname(from_path), include_path)
 
 
 class ConfigContext(object):
@@ -49,7 +54,7 @@ class FileExecutor(ConfigExecutor):
 
   @classmethod
   def compile_into(cls, context, from_path, config_file):
-    actual_file = os.path.join(os.path.dirname(from_path), config_file)
+    actual_file = relativize(from_path, config_file)
     with open(actual_file) as fp:
       context.compile(from_path, config_file, fp.read())
 
@@ -58,7 +63,7 @@ class FileExecutor(ConfigExecutor):
     deposit_stack = [cls.ROOT]
     def ast_executor(config_file, context):
       from_path = deposit_stack[-1]
-      actual_file = os.path.join(os.path.dirname(from_path), config_file)
+      actual_file = relativize(from_path, config_file)
       deposit_stack.append(actual_file)
       cls.compile_into(context, from_path, config_file)
       deposit_stack.pop()
@@ -84,7 +89,7 @@ class ResourceExecutor(FileExecutor):
 
   @classmethod
   def compile_into(cls, context, from_path, config_file):
-    actual_file = os.path.join(os.path.dirname(from_path), config_file)
+    actual_file = relativize(from_path, config_file)
     module_base, module_file = os.path.split(actual_file)
     module_base = module_base.replace(os.sep, '.')
     context.compile(from_path, config_file,
@@ -104,13 +109,19 @@ class LoadableMapExecutor(ConfigExecutor):
         return config_file
 
   @classmethod
+  def from_filename(cls, stack):
+    return reduce(relativize, stack, '')
+
+  @classmethod
   def get(cls, loadable):
     deposit_stack = [cls.ROOT]
+
     def ast_executor(config_file, context):
-      from_file = deposit_stack[-1]
+      from_file = cls.from_filename(deposit_stack)
       deposit_stack.append(config_file)
       context.compile(from_file, config_file, loadable[ConfigContext.key(from_file, config_file)])
       deposit_stack.pop()
+
     return ast_executor, cls.find_root_file(loadable)
 
 
