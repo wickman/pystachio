@@ -1,10 +1,22 @@
+# Enables support for a docker container-based build,
+# see: http://docs.travis-ci.com/user/workers/container-based-infrastructure/
+sudo: false
+
 language: python
-python: 2.7
+
+# We default python to 3.5 to make sure its installed and available for the
+# TOXENV=py35 case.  Without this (say defaulting to 2.7), that lone case fails
+# from not finding a python3.5.
+python: 3.5
+
 env:
   - TOXENV=py26
   - TOXENV=py27
+  - TOXENV=py33
   - TOXENV=py34
+  - TOXENV=py35
   - TOXENV=pypy
+  - TOXENV=pypy3
 install:
   - pip install tox
 script:
