@@ -273,8 +273,15 @@ class Structural(Object, Type, Namable):
 
   @classmethod
   def _filter_against_schema(cls, values):
-    return dict((key, val) for (key, val) in values.items()
-                if key in cls.TYPEMAP)
+    result = {}
+    for key, val in values.items():
+      if key not in cls.TYPEMAP:
+        continue
+      if issubclass(cls.TYPEMAP[key].klazz, Structural):
+        result[key] = cls.TYPEMAP[key].klazz._filter_against_schema(val)
+      else:
+        result[key] = val
+    return result
 
   @classmethod
   def json_load(cls, fp, strict=False):

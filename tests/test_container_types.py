@@ -165,24 +165,32 @@ def test_hashing():
   assert Map(String,Integer)({'a': 2, 'b': 1}) not in map
 
 def test_load_json():
+  class Child(Struct):
+    child_name = String
+
   class Process(Struct):
     name = Default(String, 'hello')
     cmdline = String
+    child = Child
 
   GOOD_JSON = [
      '{}',
      '{"name": "hello world"}',
      '{"cmdline": "bitchin"}',
      '{"name": "hello world", "cmdline": "bitchin"}',
+     '{"name": "hello world", "cmdline": "bitchin", "child": {}}',
+     '{"name": "hello world", "cmdline": "bitchin", "child": {"child_name": "wow"}}',
   ]
 
   FAILSTRICT_JSON = [
-    '{"name": "hello world", "cmdline": "bitchin", "extra_schema_arg": "yay"}'
+    '{"name": "hello world", "cmdline": "bitchin", "extra_schema_arg": "yay"}',
+    '{"name": "hello world", "cmdline": "bitchin", "child": {"extra_arg": "yayer"}}',
   ]
 
   FAIL = [
     '{"name": [1,2], "cmdline": "bitchin"}',
     '{"name": [1,2], "cmdline": "bitchin", "extra_schema": "foo"}',
+    '{"name": "hello world", "cmdline": "bitchin", "child": {"child_name": [1, 2]}}',
   ]
 
   for js in GOOD_JSON + FAILSTRICT_JSON:
