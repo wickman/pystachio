@@ -161,7 +161,6 @@ def test_hashing():
   assert List(Integer)([1,2,3]) in map
   assert Map(String,Integer)({'a': 1, 'b': 2}) in map
   assert List(Integer)([3,2,1]) not in map
-  assert Map(String,Integer)({'b': 2, 'a': 1}) in map
   assert Map(String,Integer)({'a': 2, 'b': 1}) not in map
 
 def test_load_json():
