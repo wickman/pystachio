@@ -1,4 +1,5 @@
 # Pystachio #
+[![Build Status](https://travis-ci.org/wickman/pystachio.svg)](https://travis-ci.org/wickman/pystachio)
 
 ### tl;dr ###
 
