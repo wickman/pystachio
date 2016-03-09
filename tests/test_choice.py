@@ -122,4 +122,3 @@ def test_choice_string_enum():
     v = TestChoice("A")
     assert isinstance(v.interpolate()[0], TestEnum)
     assert isinstance(TestChoice("Q").interpolate()[0], String)
-

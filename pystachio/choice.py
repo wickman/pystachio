@@ -156,13 +156,7 @@ def Choice(*args):
     else:
         name = "Choice_" + "_".join(a.__name__ for a in args[0])
         alternatives = args[0]
-<<<<<<< HEAD
     assert isinstance(name, Compatibility.stringy)
     assert all([issubclass(t, Type) for t in alternatives])
     return TypeFactory.new({}, ChoiceFactory.PROVIDES, name,
                            tuple([t.serialize_type() for t in alternatives]))
-=======
-
-    tup = tuple([t for opt_type in alternatives for t in opt_type.serialize_type()])
-    return TypeFactory.new({}, ChoiceFactory.PROVIDES, name, tup)
->>>>>>> Got interpolation working in choice types.
