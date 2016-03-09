@@ -124,7 +124,7 @@ Schemas wouldn't be terribly useful without the ability to be hierarchical:
 
 ## The type system ##
 
-There are five basic types, two basic container types and then the `Struct` type.
+There are five basic types, two basic container types and then the `Struct` and `Choice` types.
 
 ### Basic Types ###
 
@@ -257,7 +257,14 @@ types are hashable as well, so you can construct stranger composite types
       StringIntegerMap(brian => 28, ian => 15, robey => 5000) => 0.2,
       StringIntegerMap(brian => 30, ian => 21, robey => 35) => 0.9)
 
+#### Choice Types ####
 
+Choice types represent alternatives - values that can have one of some set of values.
+
+    >>> C = Choice("IntOrString", [Integer, String])
+    >>> c1 = C("abc")
+    >>> c2 = C(343)
+    
 
 ## Object scopes ##
 
@@ -327,7 +334,7 @@ Because you can bind multiple times, scopes just form a name-resolution order:
      Person(first=brian))
 
 The later a variable is bound, the "higher priority" its name resolution
-becomes.  Binding to an object is to achieve the effect of local overriding. 
+becomes.  Binding to an object is to achieve the effect of local overriding.
 But you can also do a lower-priority "global" bindings via `in_scope`:
 
     >>> env = Environment(globalvar = "global variable", sharedvar = "global shared variable")
@@ -442,7 +449,7 @@ down.  Ultimately `bind` just prepends a scope to the list of scopes and
 ### Complex templates ###
 
 Remember however that you can bind any `Namable` object, which includes
-`List`, `Map`, `Struct` and `Environment` types, and these are hierarchical. 
+`List`, `Map`, `Struct` and `Environment` types, and these are hierarchical.
 Take for example a schema that defines a UNIX process:
 
     class Process(Struct):
