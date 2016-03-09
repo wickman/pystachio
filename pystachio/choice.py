@@ -25,9 +25,12 @@ class ChoiceFactory(TypeFactory):
     @staticmethod
     def create(type_dict, *type_parameters):
         """
-        type_parameters should be: (name, (alternative1, alternative2, ...))
+        type_parameters should be:
+            (name, (alternative1, alternative2, ...))
+        where name is a string, and the alternatives are all valid serialized
+        types.
         """
-#        assert len(type_parameters) == 2
+        assert len(type_parameters) == 2
         name = type_parameters[0]
         alternatives = type_parameters[1]
         assert isinstance(name, Compatibility.stringy)
@@ -35,17 +38,21 @@ class ChoiceFactory(TypeFactory):
         choice_types = []
 
         for c in alternatives:
-            print("Getting type for %s" % (c,))
             choice_types.append(TypeFactory.new(type_dict, *c))
-        return TypeMetaclass(str(name), (ChoiceContainer,), { 'CHOICES': choice_types})
+        return TypeMetaclass(str(name), (ChoiceContainer,), {'CHOICES': choice_types})
 
 
 class ChoiceContainer(Object, Type):
-#    __slots__ = ('_value', '_scopes',)
+    """The inner implementation of a choice type value.
+
+    This just stores a value, and then tries to coerce it into one of the alternatives when
+    it's checked or interpolated.
+    """
+    __slots__ = ('_value',)
+
     def __init__(self, val):
         self._value = val
         self._scopes = ()
-        # The value isn't a Pystachio wrapped value.
 
     def scopes(self):
         return self._scopes
