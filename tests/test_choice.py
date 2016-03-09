@@ -113,7 +113,6 @@ def test_json_choice():
 
     z = Yuck(one=Foo(a="1", b=2), two="hello")
     assert z.check().ok()
-    print("+++++ %s" + z.json_dumps())
     d = json.loads(z.json_dumps())
     assert d == {"two": "hello", "one": {"a": "1", "b": 2}}
 
