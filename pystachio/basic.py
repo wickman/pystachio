@@ -122,6 +122,7 @@ class Integer(SimpleObject):
   @classmethod
   def coerce(cls, value):
     ACCEPTED_SOURCE_TYPES = Compatibility.numeric + Compatibility.stringy
+    print("TYpe of %s = %s" % (value, type(value)))
     if not isinstance(value, ACCEPTED_SOURCE_TYPES):
       raise cls.CoercionError(value, cls)
     try:

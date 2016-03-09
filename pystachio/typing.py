@@ -37,6 +37,13 @@ class TypeFactoryType(type):
   _TYPE_FACTORIES = {}
 
   def __new__(mcs, name, parents, attributes):
+    """Args:
+       mcs(metaclass): the class object to create an instance of. Since this is actually
+           creating an instance of a type factory class, it's really a metaclass.
+       name (str): the name of the type to create.
+       parents (list(class)): the superclasses.
+       attributes (map(string, value)):
+    """
     if 'PROVIDES' not in attributes:
       return type.__new__(mcs, name, parents, attributes)
     else:
@@ -133,6 +140,13 @@ class TypeMetaclass(type):
       cls.type_parameters() == other.type_parameters())
 
   def __new__(mcls, name, parents, attributes):
+    """Creates a new Type object (an instance of TypeMetaclass).
+    Args:
+        name (str): the name of the new type.
+        parents (list(str)): a list of superclasses.
+        attributes: (???): a map from name to value for "parameters" for defining
+           the new type. 
+    """
     return type.__new__(mcls, name, parents, attributes)
 
 

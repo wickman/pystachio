@@ -15,6 +15,9 @@ from .basic import (
     Float,
     Integer,
     String)
+from .choice import (
+   Choice
+)
 from .composite import (
     Default,
     Empty,
