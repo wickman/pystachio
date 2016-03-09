@@ -1,7 +1,12 @@
+<<<<<<< HEAD
 import json
 from pystachio import (
     Choice,
     Enum,
+=======
+from pystachio import (
+    Choice,
+>>>>>>> Implement a new choice type.
     Float,
     Integer,
     Ref,
@@ -68,7 +73,11 @@ def test_choice_in_struct():
 
     one = SOne(a=12, b="abc")
     assert one.check().ok()
+<<<<<<< HEAD
     assert one.interpolate()[0].a().value() == Integer(12)
+=======
+    assert one.interpolate()[0].a().get() == 12
+>>>>>>> Implement a new choice type.
 
     two = SOne(a="1{{q}}2", b="hi there")
     assert not two.check().ok()
@@ -77,11 +86,19 @@ def test_choice_in_struct():
 
     two_int = two.bind(q="34")
     assert two_int.check().ok()
+<<<<<<< HEAD
     assert two_int.a().value() == Integer(1342)
 
     two_fl = two.bind(q="3.4")
     assert two_fl.check().ok()
     assert two_fl.a().value() == Float(13.42)
+=======
+    assert two_int.a().get() == 1342
+
+    two_fl = two.bind(q="3.4")
+    assert two_fl.check().ok()
+    assert two_fl.a().get() == 13.42
+>>>>>>> Implement a new choice type.
 
     two_str = two.bind(q="abc")
     assert not two_str.check().ok()
@@ -122,4 +139,3 @@ def test_choice_string_enum():
     v = TestChoice("A")
     assert isinstance(v.interpolate()[0], TestEnum)
     assert isinstance(TestChoice("Q").interpolate()[0], String)
-
