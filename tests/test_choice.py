@@ -98,3 +98,16 @@ def test_struct_in_choice_in_struct():
 
     z = Yuck(one=Foo(a="1", b=2), two="hello")
     assert z.check().ok()
+
+def test_json_choice():
+    """Make sure that serializing to JSON works for structs with choices."""
+    class Foo(Struct):
+        a = String
+        b = Integer
+    class Yuck(Struct):
+        one = Choice([Foo, Integer])
+        two = String
+
+    z = Yuck(one=Foo(a="1", b=2), two="hello")
+    assert z.check().ok()
+    assert z.json_dumps() == '{"two": "hello", "one": {"a": "1", "b": 2}}'
