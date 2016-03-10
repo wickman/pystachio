@@ -34,12 +34,9 @@ class ChoiceFactory(TypeFactory):
         name = type_parameters[0]
         alternatives = type_parameters[1]
         assert isinstance(name, Compatibility.stringy)
-        assert isinstance(alternatives, (list, tuple))
-        choice_types = []
-
-        for c in alternatives:
-            choice_types.append(TypeFactory.new(type_dict, *c))
-        return TypeMetaclass(str(name), (ChoiceContainer,), {'CHOICES': choice_types})
+        assert isinstance(choices, (list, tuple))
+        choice_types = [TypeFactory.new(type_dict, c) for c in choices]
+        return TypeMetaclass(str(name), (ChoiceContainer,), { 'CHOICES': choice_types})
 
 
 class ChoiceContainer(Object, Type):
@@ -159,7 +156,13 @@ def Choice(*args):
     else:
         name = "Choice_" + "_".join(a.__name__ for a in args[0])
         alternatives = args[0]
+<<<<<<< HEAD
     assert isinstance(name, Compatibility.stringy)
     assert all([issubclass(t, Type) for t in alternatives])
     return TypeFactory.new({}, ChoiceFactory.PROVIDES, name,
                            tuple([t.serialize_type() for t in alternatives]))
+=======
+
+    tup = tuple([t for opt_type in alternatives for t in opt_type.serialize_type()])
+    return TypeFactory.new({}, ChoiceFactory.PROVIDES, name, tup)
+>>>>>>> Got interpolation working in choice types.
