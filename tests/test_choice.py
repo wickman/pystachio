@@ -1,4 +1,7 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Fix order dependency in test.
 import json
 from pystachio import (
     Choice,
