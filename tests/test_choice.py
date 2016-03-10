@@ -1,3 +1,4 @@
+import json
 from pystachio import (
     Choice,
     Float,
@@ -110,4 +111,5 @@ def test_json_choice():
 
     z = Yuck(one=Foo(a="1", b=2), two="hello")
     assert z.check().ok()
-    assert z.json_dumps() == '{"two": "hello", "one": {"a": "1", "b": 2}}'
+    d = json.loads(z.json_dumps())
+    assert d == {"two": "hello", "one": {"a": "1", "b": 2}}
