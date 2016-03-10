@@ -134,6 +134,7 @@ class Object(object):
     """
     new_self = self.copy()
     new_scopes = Object.translate_to_scopes(*args, **kw)
+    print("Scopes = %s, new_scopes = %s" % (type(new_self._scopes), type(new_scopes)))
     new_self._scopes = new_self._scopes + new_scopes
     return new_self
 

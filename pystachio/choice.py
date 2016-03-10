@@ -11,7 +11,7 @@ from .typing import (
   Type,
   TypeCheck,
   TypeFactory,
-  TypeMetaclass)
+    TypeMetaclass)
 
 class ChoiceFactory(TypeFactory):
     PROVIDES = 'Choice'
@@ -25,14 +25,15 @@ class ChoiceFactory(TypeFactory):
         name, choices = type_parameters
         assert isinstance(name, Compatibility.stringy)
         assert isinstance(choices, (list, tuple))
-        return TypeMetaclass(str(name), (ChoiceContainer,), { 'CHOICES': choices})
+        choice_types = [TypeFactory.new(type_dict, c) for c in choices]
+        return TypeMetaclass(str(name), (ChoiceContainer,), { 'CHOICES': choice_types})
 
 
 class ChoiceContainer(Object, Type):
 #    __slots__ = ('_value', '_scopes',)
     def __init__(self, val):
         self._value = val
-        self._scopes = {}
+        self._scopes = ()
         # The value isn't a Pystachio wrapped value.
 
     def scopes(self):
@@ -81,7 +82,23 @@ class ChoiceContainer(Object, Type):
             (self.__class__.__name__, self._value))
 
     def interpolate(self):
-        return self._value.in_scope(*self.scopes()).interpolate()
+        if isinstance(self._value, Object):
+            return self._value.in_scope(*self.scopes()).interpolate()
+        else:
+            # If the value isn't a Pystachio object, then it needs to get wrapped in order to
+            # interpolate it. But we don't know what type it's intended to have. So we need to try
+            # to wrap it in the various type alternatives. The _first_ one that succeeds is
+            # what we want to use.
+            for choice_type in self.CHOICES:
+                print("Trying choice %s" % choice_type)
+                try:
+                    # If this succeeds, then return it. If not, try the next type.
+                    return choice_type(self._value).in_scope(*self.scopes()).interpolate()
+                except self.CoercionError as e:
+                    # no big deal.
+                    print(e)
+                    pass
+            raise self.CoercionError(self._value, self.__class__)
 
     @classmethod
     def type_factory(cls):
@@ -89,7 +106,12 @@ class ChoiceContainer(Object, Type):
 
     @classmethod
     def type_parameters(cls):
-        return tuple(ch.serialize_type() for ch in cls.CHOICES)
+        tup = tuple([t for opt_type in cls.CHOICES for t in opt_type.serialize_type()])
+        return (cls.__name__, tup)
+
+    @classmethod
+    def serialize_type(cls):
+        return (cls.type_factory(),) + cls.type_parameters()
 
 
 def Choice(*args):
@@ -99,4 +121,6 @@ def Choice(*args):
     else:
         name = "Choice_" + "_".join(a.__name__ for a in args[0])
         alternatives = args[0]
-    return TypeFactory.new({}, ChoiceFactory.PROVIDES, name, alternatives)
+
+    tup = tuple([t for opt_type in alternatives for t in opt_type.serialize_type()])
+    return TypeFactory.new({}, ChoiceFactory.PROVIDES, name, tup)
