@@ -1,6 +1,7 @@
 import json
 from pystachio import (
     Choice,
+    Enum,
     Float,
     Integer,
     Ref,
@@ -113,3 +114,11 @@ def test_json_choice():
     assert z.check().ok()
     d = json.loads(z.json_dumps())
     assert d == {"two": "hello", "one": {"a": "1", "b": 2}}
+
+def test_choice_string_enum():
+    TestEnum = Enum("TestEnum", ("A", "B", "C"))
+    TestChoice = Choice("TestChoice", (TestEnum, String))
+    v = TestChoice("A")
+    assert isinstance(v.interpolate()[0], TestEnum)
+    assert isinstance(TestChoice("Q").interpolate()[0], String)
+

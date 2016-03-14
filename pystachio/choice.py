@@ -1,21 +1,3 @@
-<<<<<<< HEAD
-
-import copy
-from inspect import isclass
-import json
-
-from .base import Object, Environment
-from .basic import SimpleObject
-from .compatibility import Compatibility
-from .naming import Namable, frozendict
-from .typing import (
-  Type,
-  TypeCheck,
-  TypeFactory,
-    TypeMetaclass)
-
-class ChoiceFactory(TypeFactory):
-=======
 # Choice types: types that can take one of a group of selected types.
 
 import json
@@ -38,24 +20,17 @@ class ChoiceFactory(TypeFactory):
     expression (where IntegerExpression is a struct type) could be written
     Choice("IntOrExpr", (Integer, IntegerExpression))
     """
->>>>>>> Implement a new choice type.
     PROVIDES = 'Choice'
 
     @staticmethod
     def create(type_dict, *type_parameters):
         """
-<<<<<<< HEAD
-        type_parameters should be: (name, (alternative1, alternative2, ...))
-        """
-#        assert len(type_parameters) == 2
-=======
         type_parameters should be:
             (name, (alternative1, alternative2, ...))
         where name is a string, and the alternatives are all valid serialized
         types.
         """
         assert len(type_parameters) == 2
->>>>>>> Implement a new choice type.
         name = type_parameters[0]
         alternatives = type_parameters[1]
         assert isinstance(name, Compatibility.stringy)
@@ -63,19 +38,6 @@ class ChoiceFactory(TypeFactory):
         choice_types = []
 
         for c in alternatives:
-<<<<<<< HEAD
-            print("Getting type for %s" % (c,))
-            choice_types.append(TypeFactory.new(type_dict, *c))
-        return TypeMetaclass(str(name), (ChoiceContainer,), { 'CHOICES': choice_types})
-
-
-class ChoiceContainer(Object, Type):
-#    __slots__ = ('_value', '_scopes',)
-    def __init__(self, val):
-        self._value = val
-        self._scopes = ()
-        # The value isn't a Pystachio wrapped value.
-=======
             choice_types.append(TypeFactory.new(type_dict, *c))
         return TypeMetaclass(str(name), (ChoiceContainer,), {'CHOICES': choice_types})
 
@@ -91,7 +53,6 @@ class ChoiceContainer(Object, Type):
     def __init__(self, val):
         self._value = val
         self._scopes = ()
->>>>>>> Implement a new choice type.
 
     def scopes(self):
         return self._scopes
@@ -106,11 +67,7 @@ class ChoiceContainer(Object, Type):
         return hash(self.get())
 
     def __repr__(self):
-<<<<<<< HEAD
-#        si, _ = self.interpolate()
-=======
         si, _ = self.interpolate()
->>>>>>> Implement a new choice type.
         return '%s(%s)' % (self.__class__.__name__,
                            repr(self._value))
 
@@ -127,9 +84,6 @@ class ChoiceContainer(Object, Type):
         return si._value == other._value
 
     def check(self):
-<<<<<<< HEAD
-        type_checks = []
-=======
         # Try each of the options in sequence:
         # There are three cases for matching depending on the value:
         # (1) It's a pystachio value, and its type is the type alternative. Then typecheck
@@ -140,26 +94,24 @@ class ChoiceContainer(Object, Type):
         #    If it succeeds, then the typecheck succeeds. Otherwise, it proceeds to the next
         #    type alternative.
         # If none of the type alternatives succeed, then the check fails. match
->>>>>>> Implement a new choice type.
         for opt in self.CHOICES:
             if isinstance(self._value, opt):
                 return self._value.in_scope(*self.scopes()).check()
             # If this type-option is a simple-object type, then we try a
             # coercion.
             elif issubclass(opt, SimpleObject):
-                tc = opt(self._value).in_scope(*self.scopes()).check()
-                if tc.ok():
-                    return tc
+                try:
+                    tc = opt(self._value).in_scope(*self.scopes()).check()
+                    if tc.ok():
+                        return tc
+                except (self.CoercionError, ValueError):
+                    pass
         # If we've reached here, then it failed all of its choices.
         return TypeCheck.failure(
             "%s typecheck failed: value %s did not match any of its alternatives" %
             (self.__class__.__name__, self._value))
 
     def interpolate(self):
-<<<<<<< HEAD
-=======
-        print("Trying to interpolate value: %s" % self._value)
->>>>>>> Implement a new choice type.
         if isinstance(self._value, Object):
             return self._value.in_scope(*self.scopes()).interpolate()
         else:
