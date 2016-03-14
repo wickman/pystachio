@@ -116,7 +116,7 @@ def test_json_choice():
     d = json.loads(z.json_dumps())
     assert d == {"two": "hello", "one": {"a": "1", "b": 2}}
 
-def test_choice_string_enum():
+def test_choice_string_enum(): 
     TestEnum = Enum("TestEnum", ("A", "B", "C"))
     TestChoice = Choice("TestChoice", (TestEnum, String))
     v = TestChoice("A")
