@@ -6,10 +6,13 @@ import json
 from pystachio import (
     Choice,
     Enum,
+<<<<<<< HEAD
 =======
 from pystachio import (
     Choice,
 >>>>>>> Implement a new choice type.
+=======
+>>>>>>> Fixed a bug in choices with enums
     Float,
     Integer,
     Ref,
