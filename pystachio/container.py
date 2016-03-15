@@ -1,15 +1,11 @@
-from collections import Iterable, Mapping, Sequence
 import copy
+from collections import Iterable, Mapping, Sequence
 from inspect import isclass
 
 from .base import Object
 from .compatibility import Compatibility
 from .naming import Namable, frozendict
-from .typing import (
-    Type,
-    TypeCheck,
-    TypeFactory,
-    TypeMetaclass)
+from .typing import Type, TypeCheck, TypeFactory, TypeMetaclass
 
 
 class ListFactory(TypeFactory):

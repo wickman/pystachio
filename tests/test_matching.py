@@ -1,7 +1,5 @@
-import copy
-
 from pystachio import *
-from pystachio.matcher import Matcher, Any
+from pystachio.matcher import Any, Matcher
 
 
 def test_matcher():

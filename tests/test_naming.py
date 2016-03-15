@@ -1,12 +1,11 @@
 from copy import deepcopy
+
 import pytest
 
-from pystachio.base import Environment
-from pystachio.naming import Ref, Namable, frozendict
-
 from pystachio.basic import *
-from pystachio.container import *
 from pystachio.composite import *
+from pystachio.container import *
+from pystachio.naming import Ref
 
 
 def ref(address):
@@ -133,4 +132,3 @@ def test_deepcopy_preserves_bindings():
   briancopy = deepcopy(brian)
   assert brian.find(ref('number')) == Integer(4025551234)
   assert briancopy.find(ref('number')) == Integer(4025551234)
-

@@ -1,11 +1,6 @@
 import pytest
-from pystachio.basic import (
-    Boolean,
-    Enum,
-    Float,
-    Integer,
-    SimpleObject,
-    String)
+
+from pystachio.basic import Boolean, Enum, Float, Integer, SimpleObject, String
 
 
 def unicodey(s):

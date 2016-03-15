@@ -1,12 +1,14 @@
 import copy
-try:
-  from itertools import izip_longest as zipl
-except ImportError:
-  from itertools import zip_longest as zipl
 import re
 
 from .compatibility import Compatibility
 from .naming import Ref
+
+try:
+  from itertools import izip_longest as zipl
+except ImportError:
+  from itertools import zip_longest as zipl
+
 
 
 class Any(object):

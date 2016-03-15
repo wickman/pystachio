@@ -1,15 +1,11 @@
-from collections import Mapping
 import copy
-from inspect import isclass
 import json
+from collections import Mapping
+from inspect import isclass
 
-from .base import Object, Environment
-from .naming import Namable, Ref, frozendict
-from .typing import (
-  Type,
-  TypeCheck,
-  TypeFactory,
-  TypeMetaclass)
+from .base import Environment, Object
+from .naming import Namable, frozendict
+from .typing import Type, TypeCheck, TypeFactory, TypeMetaclass
 
 
 class Empty(object):

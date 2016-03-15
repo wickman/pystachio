@@ -2,7 +2,7 @@ import pytest
 
 from pystachio.base import Environment
 from pystachio.basic import String
-from pystachio.composite import Struct, Required, Default
+from pystachio.composite import Default, Required, Struct
 from pystachio.container import List
 from pystachio.naming import Ref
 from pystachio.parsing import MustacheParser
@@ -103,4 +103,3 @@ def test_mustache_resolve_cycles():
   with pytest.raises(MustacheParser.Uninterpolatable):
     MustacheParser.resolve('{{foo[{{bar}}]}} {{baz}}',
        Environment(foo = List(String)(["{{foo[{{bar}}]}}", "world"])), Environment(bar = 0))
-

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from setuptools import setup, find_packages, Command
+from setuptools import Command, find_packages, setup
 
 version = '0.8.0'
 
