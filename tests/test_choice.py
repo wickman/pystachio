@@ -1,6 +1,7 @@
 import json
 from pystachio import (
     Choice,
+    Default,
     Enum,
     Float,
     Integer,
@@ -121,4 +122,15 @@ def test_choice_string_enum():
     v = TestChoice("A")
     assert isinstance(v.interpolate()[0], TestEnum)
     assert isinstance(TestChoice("Q").interpolate()[0], String)
+
+
+def test_choice_default():
+    class Dumb(Struct):
+        one = String
+    class ChoiceDefaultStruct(Struct):
+        a = Default(Choice("IntOrDumb", [Dumb, Integer]), 28)
+
+    v = ChoiceDefaultStruct()
+    v.check()
+    assert v.json_dumps() == ""
 

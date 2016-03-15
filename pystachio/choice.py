@@ -57,7 +57,10 @@ class ChoiceContainer(Object, Type):
         return self._scopes
 
     def get(self):
-        return self._value.get()
+        if isinstance(self._value, Object):
+            return self._value.get()
+        else:
+            return self._value
 
     def value(self):
         return self._value
