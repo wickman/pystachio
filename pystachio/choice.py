@@ -60,6 +60,9 @@ class ChoiceContainer(Object, Type):
     def get(self):
         return self._value.get()
 
+    def value(self):
+        return self._value
+
     def dup(self):
         return self.__class__(self._value)
 

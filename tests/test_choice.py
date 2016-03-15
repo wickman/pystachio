@@ -68,7 +68,7 @@ def test_choice_in_struct():
 
     one = SOne(a=12, b="abc")
     assert one.check().ok()
-    assert one.interpolate()[0].a().get() == 12
+    assert one.interpolate()[0].a().value() == Integer(12)
 
     two = SOne(a="1{{q}}2", b="hi there")
     assert not two.check().ok()
@@ -77,11 +77,11 @@ def test_choice_in_struct():
 
     two_int = two.bind(q="34")
     assert two_int.check().ok()
-    assert two_int.a().get() == 1342
+    assert two_int.a().value() == Integer(1342)
 
     two_fl = two.bind(q="3.4")
     assert two_fl.check().ok()
-    assert two_fl.a().get() == 13.42
+    assert two_fl.a().value() == Float(13.42)
 
     two_str = two.bind(q="abc")
     assert not two_str.check().ok()
@@ -112,6 +112,7 @@ def test_json_choice():
 
     z = Yuck(one=Foo(a="1", b=2), two="hello")
     assert z.check().ok()
+    print("+++++ %s" + z.json_dumps())
     d = json.loads(z.json_dumps())
     assert d == {"two": "hello", "one": {"a": "1", "b": 2}}
 
