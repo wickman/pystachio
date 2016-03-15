@@ -267,7 +267,7 @@ Object just creates a new object with an additional variable scope.  You can
 print the scopes by using the `scopes` function:
 
     >>> String("hello").scopes()
-    []
+    ()
 
 You can bind variables to that object with the `bind` function:
 
@@ -284,25 +284,25 @@ The environment variables of an object do not alter equality, for example:
 The object appears to be the same but it carries that scope around with it:
 
     >>> String("hello").bind(herp = "derp").scopes()
-    [Environment({Ref(herp): 'derp'})]
+    (Environment({Ref(herp): 'derp'}),)
 
 
 Furthermore you can bind multiple times:
 
     >>> String("hello").bind(herp = "derp").bind(herp = "extra derp").scopes()
-    [Environment({Ref(herp): 'extra derp'}), Environment({Ref(herp): 'derp'})]
+    (Environment({Ref(herp): 'extra derp'}), Environment({Ref(herp): 'derp'}))
 
 
 You can use keyword arguments, but you can also pass dictionaries directly:
 
     >>> String("hello").bind({"herp": "derp"}).scopes()
-    [Environment({Ref(herp): 'derp'})]
+    (Environment({Ref(herp): 'derp'}),)
 
 Think of this as a "mount table" for mounting objects at particular points
 in a namespace.  This namespace is hierarchical:
 
     >>> String("hello").bind(herp = "derp", metaherp = {"a": 1, "b": {"c": 2}}).scopes()
-    [Environment({Ref(herp): 'derp', Ref(metaherp.b.c): '2', Ref(metaherp.a): '1'})]
+    (Environment({Ref(herp): 'derp', Ref(metaherp.b.c): '2', Ref(metaherp.a): '1'}),)
 
 In fact, you can bind any `Namable` object, including `List`, `Map`, and
 `Struct` types directly:
@@ -312,7 +312,7 @@ In fact, you can bind any `Namable` object, including `List`, `Map`, and
     ...   last = String
     ...
     >>> String("hello").bind(Person(first="brian")).scopes()
-    [Person(first=brian)]
+    (Person(first=brian),)
 
 The `Environment` object is simply a mechanism to bind arbitrary strings
 into a namespace compatible with `Namable` objects.
@@ -321,10 +321,10 @@ Because you can bind multiple times, scopes just form a name-resolution order:
 
     >>> (String("hello").bind(Person(first="brian"), first="john")
                         .bind({'first': "jake"}, Person(first="jane"))).scopes()
-    [Person(first=jane),
+    (Person(first=jane),
      Environment({Ref(first): 'jake'}),
      Environment({Ref(first): 'john'}),
-     Person(first=brian)]
+     Person(first=brian))
 
 The later a variable is bound, the "higher priority" its name resolution
 becomes.  Binding to an object is to achieve the effect of local overriding. 
@@ -333,19 +333,19 @@ But you can also do a lower-priority "global" bindings via `in_scope`:
     >>> env = Environment(globalvar = "global variable", sharedvar = "global shared variable")
     >>> obj = String("hello").bind(localvar = "local variable", sharedvar = "local shared variable")
     >>> obj.scopes()
-    [Environment({Ref(localvar): 'local variable', Ref(sharedvar): 'local shared variable'})]
+    (Environment({Ref(localvar): 'local variable', Ref(sharedvar): 'local shared variable'}),)
 
 Now we can bind `env` directly into `obj` as if they were local variables using `bind`:
 
     >>> obj.bind(env).scopes()
-    [Environment({Ref(globalvar): 'global variable', Ref(sharedvar): 'global shared variable'}),
-     Environment({Ref(localvar): 'local variable', Ref(sharedvar): 'local shared variable'})]
+    (Environment({Ref(globalvar): 'global variable', Ref(sharedvar): 'global shared variable'}),
+     Environment({Ref(localvar): 'local variable', Ref(sharedvar): 'local shared variable'}))
 
 Alternatively we can bind `env` into `obj` as if they were global variables using `in_scope`:
 
     >>> obj.in_scope(env).scopes()
-    [Environment({Ref(localvar): 'local variable', Ref(sharedvar): 'local shared variable'}),
-     Environment({Ref(globalvar): 'global variable', Ref(sharedvar): 'global shared variable'})]
+    (Environment({Ref(localvar): 'local variable', Ref(sharedvar): 'local shared variable'}),
+     Environment({Ref(globalvar): 'global variable', Ref(sharedvar): 'global shared variable'}))
 
 You can see the local variables take precedence.  The use of scoping will
 become more obvious when in the context of templating.
@@ -420,7 +420,7 @@ As we mentioned before, objects have scopes.  Let's look at the case of floaty:
     >>> floaty
     Float(1.0)
     >>> floaty.scopes()
-    [Environment({Ref(not): '1', Ref(floaty): '0'})]
+    (Environment({Ref(not): '1', Ref(floaty): '0'}),)
 
 
 But if we bind `not = 2`:
@@ -428,7 +428,7 @@ But if we bind `not = 2`:
     >>> floaty.bind({'not': 2})
     Float(2.0)
     >>> floaty.bind({'not': 2}).scopes()
-    [Environment({Ref(not): '2'}), Environment({Ref(floaty): '0', Ref(not): '1'})]
+    (Environment({Ref(not): '2'}), Environment({Ref(floaty): '0', Ref(not): '1'}))
 
 If we had merely just evaluated floaty in the scope of `not = 2`, it would have behaved differently:
 
