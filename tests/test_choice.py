@@ -113,7 +113,6 @@ def test_json_choice():
 
     z = Yuck(one=Foo(a="1", b=2), two="hello")
     assert z.check().ok()
-    print("+++++ %s" + z.json_dumps())
     d = json.loads(z.json_dumps())
     assert d == {"two": "hello", "one": {"a": "1", "b": 2}}
 
@@ -123,4 +122,4 @@ def test_choice_string_enum():
     v = TestChoice("A")
     assert isinstance(v.interpolate()[0], TestEnum)
     assert isinstance(TestChoice("Q").interpolate()[0], String)
-    assert z.json_dumps() == '{"two": "hello", "one": {"a": "1", "b": 2}}'
+    assert json.loads(z.json_dumps()) == {"two": "hello", "one": {"a": "1", "b": 2}}

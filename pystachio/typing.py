@@ -82,7 +82,6 @@ class TypeFactory(TypeFactoryClass):
     if type_tuple not in type_dict:
       factory = TypeFactory.get_factory(type_factory)
       reified_type = factory.create(type_dict, *type_parameters)
-      print("Reified(%s)=%s" % (type_tuple, reified_type))
       type_dict[type_tuple] = reified_type
     return type_dict[type_tuple]
 
