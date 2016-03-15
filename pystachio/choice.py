@@ -34,9 +34,11 @@ class ChoiceFactory(TypeFactory):
         name = type_parameters[0]
         alternatives = type_parameters[1]
         assert isinstance(name, Compatibility.stringy)
-        assert isinstance(choices, (list, tuple))
-        choice_types = [TypeFactory.new(type_dict, c) for c in choices]
-        return TypeMetaclass(str(name), (ChoiceContainer,), { 'CHOICES': choice_types})
+        assert isinstance(alternatives, (list, tuple))
+        choice_types = []
+        for c in alternatives:
+            choice_types.append(TypeFactory.new(type_dict, *c))
+        return TypeMetaclass(str(name), (ChoiceContainer,), {'CHOICES': choice_types})
 
 
 class ChoiceContainer(Object, Type):
