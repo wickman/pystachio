@@ -1,11 +1,7 @@
 from .base import Object
 from .compatibility import Compatibility
 from .parsing import MustacheParser
-from .typing import (
-    Type,
-    TypeCheck,
-    TypeFactory,
-    TypeMetaclass)
+from .typing import Type, TypeCheck, TypeFactory, TypeMetaclass
 
 
 class SimpleObject(Object, Type):

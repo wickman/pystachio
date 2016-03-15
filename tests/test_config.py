@@ -1,14 +1,14 @@
 import contextlib
-from io import BytesIO
 import json
 import os
 import shutil
 import tempfile
 import textwrap
-
-from pystachio.config import Config, ConfigContext
+from io import BytesIO
 
 import pytest
+
+from pystachio.config import Config, ConfigContext
 
 
 @contextlib.contextmanager
@@ -106,4 +106,3 @@ def test_filelike_config():
   foo = b"include('derp')\na = 'Hello'"
   with pytest.raises(Config.InvalidConfigError):
     config = Config(BytesIO(foo))
-

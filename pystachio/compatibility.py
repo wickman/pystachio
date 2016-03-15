@@ -1,5 +1,5 @@
+from numbers import Integral, Real
 from sys import version_info
-from numbers import (Real, Integral)
 
 
 class Compatibility(object):

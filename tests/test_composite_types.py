@@ -1,8 +1,10 @@
 import pytest
+
 from pystachio.basic import *
 from pystachio.composite import *
-from pystachio.container import Map, List
+from pystachio.container import List, Map
 from pystachio.naming import Ref
+
 
 def ref(address):
   return Ref.from_address(address)

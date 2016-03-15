@@ -1,9 +1,10 @@
 import pytest
-from pystachio.base import Object, Environment
-from pystachio.naming import Ref, Namable
-from pystachio.basic import Integer, String
-from pystachio.container import List, Map
-from pystachio.composite import Struct
+
+from pystachio.base import Environment, Object
+from pystachio.basic import Integer
+from pystachio.container import List
+from pystachio.naming import Namable, Ref
+
 
 def dtd(d):
   return dict((Ref.from_address(key), str(val)) for key, val in d.items())

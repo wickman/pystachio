@@ -1,5 +1,7 @@
 import pytest
+
 from pystachio import *
+
 
 def ref(address):
   return Ref.from_address(address)

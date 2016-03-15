@@ -1,6 +1,7 @@
 language: python
 python: 2.7
 env:
+  - TOXENV=isort-check
   - TOXENV=py26
   - TOXENV=py27
   - TOXENV=py34

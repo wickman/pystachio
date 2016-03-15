@@ -1,5 +1,6 @@
 from pystachio import *
 
+
 class CommandLine(Struct):
   binary = Required(String)
   args   = List(String)
