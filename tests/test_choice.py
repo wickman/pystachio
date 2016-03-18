@@ -123,14 +123,32 @@ def test_choice_string_enum():
     assert isinstance(v.interpolate()[0], TestEnum)
     assert isinstance(TestChoice("Q").interpolate()[0], String)
 
-
 def test_choice_default():
+    """Regression test for a scenario that caused trouble in a yaps schema."""
     class Dumb(Struct):
         one = String
+
     class ChoiceDefaultStruct(Struct):
         a = Default(Choice("IntOrDumb", [Dumb, Integer]), 28)
+        b = Integer
 
-    v = ChoiceDefaultStruct()
-    v.check()
-    assert v.json_dumps() == ""
+    class OtherStruct(Struct):
+        first = ChoiceDefaultStruct
+        second = String
+
+    v = OtherStruct(second="hello")
+    assert v.check()
+    assert json.loads(v.json_dumps()) == {"second": "hello"}
+    w = v(first=ChoiceDefaultStruct())
+    assert w.check()
+    assert json.loads(w.json_dumps()) == {'first': {'a': 28}, 'second': 'hello'}
+    x = v(first=ChoiceDefaultStruct(a=296, b=36))
+    assert x.check()
+    assert json.loads(x.json_dumps()) == {'first': {'a': 296, 'b': 36},
+                                          'second': 'hello'}
+    y = v(first=ChoiceDefaultStruct(a=Dumb(one="Oops"), b=37))
+    assert y.check()
+    assert json.loads(y.json_dumps()) == {'first': {'a': {'one': 'Oops'}, 'b': 37},
+                                          'second': 'hello'}
+
 
