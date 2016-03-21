@@ -8,9 +8,9 @@ def test_choice_type():
   one = IntStr(123)
   two = IntStr("123")
   three = IntStr("abc")
-  assert one.interpolate()[0] == Integer(123)
-  assert two.interpolate()[0] == Integer(123)
-  assert three.interpolate()[0] == String("abc")
+  assert one.unwrap() == Integer(123)
+  assert two.unwrap() == Integer(123)
+  assert three.unwrap() == String("abc")
 
 
 def test_choice_error():
@@ -48,10 +48,10 @@ def test_choice_interpolation():
   assert two.interpolate()[1] == [Ref.from_address('a'), Ref.from_address('b')]
   two_one =  two.bind(a=12, b=23)
   assert two_one.check().ok()
-  assert two_one.interpolate()[0] == Integer(1223)
+  assert two_one.unwrap() == Integer(1223)
   two_two = two.bind(a=12, b=".34")
   assert two_two.check().ok()
-  assert two_two.interpolate()[0] == Float(12.34)
+  assert two_two.unwrap() == Float(12.34)
 
 
 def test_choice_in_struct():
@@ -61,7 +61,7 @@ def test_choice_in_struct():
 
   one = SOne(a=12, b="abc")
   assert one.check().ok()
-  assert one.interpolate()[0].a().value() == Integer(12)
+  assert one.interpolate()[0].a().unwrap() == Integer(12)
 
   two = SOne(a="1{{q}}2", b="hi there")
   assert not two.check().ok()
@@ -70,11 +70,11 @@ def test_choice_in_struct():
 
   two_int = two.bind(q="34")
   assert two_int.check().ok()
-  assert two_int.a().value() == Integer(1342)
+  assert two_int.a().unwrap() == Integer(1342)
 
   two_fl = two.bind(q="3.4")
   assert two_fl.check().ok()
-  assert two_fl.a().value() == Float(13.42)
+  assert two_fl.a().unwrap() == Float(13.42)
 
   two_str = two.bind(q="abc")
   assert not two_str.check().ok()

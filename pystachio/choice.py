@@ -58,8 +58,9 @@ class ChoiceContainer(Object, Type):
     else:
       return self._value
 
-  def value(self):
-    return self._value
+  def unwrap(self):
+    """Get the Pystachio value that's wrapped in this choice."""
+    return self.interpolate()[0]
 
   def dup(self):
     return self.__class__(self._value)
