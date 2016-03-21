@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from setuptools import Command, find_packages, setup
 
-version = '0.8.0-bf3'
+version = '0.8.0'
 
 
 class PyTest(Command):

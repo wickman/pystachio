@@ -183,6 +183,14 @@ Enums can also be constructed using `namedtuple` syntax to generate more illustr
     Color(Red)
 
 
+### Choices  ####
+
+Choice types represent alternatives - values that can have one of some set of values.
+
+    >>> C = Choice([Integer, String])
+    >>> c1 = C("abc")
+    >>> c2 = C(343)
+    
 ### Container types ###
 
 There are two container types: the `List` type and the `Map` type.  Lists
@@ -257,13 +265,6 @@ types are hashable as well, so you can construct stranger composite types
       StringIntegerMap(brian => 28, ian => 15, robey => 5000) => 0.2,
       StringIntegerMap(brian => 30, ian => 21, robey => 35) => 0.9)
 
-#### Choice Types ####
-
-Choice types represent alternatives - values that can have one of some set of values.
-
-    >>> C = Choice("IntOrString", [Integer, String])
-    >>> c1 = C("abc")
-    >>> c2 = C(343)
     
 
 ## Object scopes ##
