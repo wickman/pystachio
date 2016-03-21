@@ -84,6 +84,31 @@ class ChoiceContainer(Object, Type):
     oi, _ = other.interpolate()
     return si._value == other._value
 
+  def _unwrap(self, ret_fun, err_fun):
+    """Iterate over the options in the choice type, and try to perform some
+    action on them. If the action fails (returns None or raises either CoercionError
+    or ValueError), then it goes on to the next type.
+    Args:
+       ret_fun: a function that takes a wrapped option value, and either returns a successful
+           return value or fails.
+       err_fun: a function that takes the unwrapped value of this choice, and generates
+           an appropriate error.
+    Returns: the return value from a successful invocation of ret_fun on one of the
+       type options. If no invocation fails, then returns the value of invoking err_fun.
+    """
+    for opt in self.CHOICES:
+      if isinstance(self._value, opt):
+        return ret_fun(self._value)
+      else:
+        try:
+          o = opt(self._value)
+          ret = ret_fun(o)
+          if ret:
+            return ret
+        except (self.CoercionError, ValueError):
+          pass
+    return err_fun(self._value)
+
   def check(self):
     # Try each of the options in sequence:
     # There are three cases for matching depending on the value:
@@ -95,38 +120,26 @@ class ChoiceContainer(Object, Type):
     #  If it succeeds, then the typecheck succeeds. Otherwise, it proceeds to the next
     #  type alternative.
     # If none of the type alternatives succeed, then the check fails. match
-    for opt in self.CHOICES:
-      if isinstance(self._value, opt):
-        return self._value.in_scope(*self.scopes()).check()
-      # Try to do a coercion.
-      else:
-        try:
-          tc = opt(self._value).in_scope(*self.scopes()).check()
-          if tc.ok():
-            return tc
-        except (self.CoercionError, ValueError):
-          pass
-    # If we've reached here, then it failed all of its choices.
-    return TypeCheck.failure(
-      "%s typecheck failed: value %s did not match any of its alternatives" %
-      (self.__class__.__name__, self._value))
+    def _check(v):
+      tc = v.in_scope(*self.scopes()).check()
+      if tc.ok():
+        return tc
+
+    def _err(v):
+      return TypeCheck.failure(
+        "%s typecheck failed: value %s did not match any of its alternatives" %
+        (self.__class__.__name__, v))
+
+    return self._unwrap(_check, _err)
 
   def interpolate(self):
-    if isinstance(self._value, Object):
-      return self._value.interpolate()
-    else:
-      # If the value isn't a Pystachio object, then it needs to get wrapped in order to
-      # interpolate it. But we don't know what type it's intended to have. So we need to try
-      # to wrap it in the various type alternatives. The _first_ one that succeeds is
-      # what we want to use.
-      for choice_type in self.CHOICES:
-        try:
-          # If this succeeds, then return it. If not, try the next type.
-          return choice_type(self._value).in_scope(*self.scopes()).interpolate()
-        except (self.CoercionError, ValueError):
-          # Just proceed to the next option.
-          pass
+    def _inter(v):
+      return v.in_scope(*self.scopes()).interpolate()
+
+    def _err(v):
       raise self.CoercionError(self._value, self.__class__)
+
+    return self._unwrap(_inter, _err)
 
   @classmethod
   def type_factory(cls):
