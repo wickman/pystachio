@@ -102,9 +102,8 @@ class ChoiceContainer(Object, Type):
         for opt in self.CHOICES:
             if isinstance(self._value, opt):
                 return self._value.in_scope(*self.scopes()).check()
-            # If this type-option is a simple-object type, then we try a
-            # coercion.
-            elif issubclass(opt, SimpleObject):
+            # Try to do a coercion.
+            else:
                 try:
                     tc = opt(self._value).in_scope(*self.scopes()).check()
                     if tc.ok():

@@ -5,6 +5,7 @@ from pystachio import (
     Enum,
     Float,
     Integer,
+    List,
     Ref,
     String,
     Struct,
@@ -113,6 +114,7 @@ def test_json_choice():
 
     z = Yuck(one=Foo(a="1", b=2), two="hello")
     assert z.check().ok()
+
     d = json.loads(z.json_dumps())
     assert d == {"two": "hello", "one": {"a": "1", "b": 2}}
 
@@ -151,4 +153,12 @@ def test_choice_default():
     assert json.loads(y.json_dumps()) == {'first': {'a': {'one': 'Oops'}, 'b': 37},
                                           'second': 'hello'}
 
-
+def test_choice_primlist():
+    C = Choice([String, List(Integer)])
+    c = C([1, 2, 3])
+    assert c.check().ok()
+    c = C("hello")
+    assert c.check().ok()
+    c = C([1, 2, "{{x}}"])
+    assert not c.check().ok()
+    assert c.bind(x=3).check().ok()
