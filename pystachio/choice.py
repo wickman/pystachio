@@ -1,6 +1,5 @@
 # Choice types: types that can take one of a group of selected types.
 
-
 import json
 
 from .base import Object
@@ -174,4 +173,3 @@ def Choice(*args):
   assert all(issubclass(t, Type) for t in alternatives)
   return TypeFactory.new({}, ChoiceFactory.PROVIDES, name,
                          tuple(t.serialize_type() for t in alternatives))
-

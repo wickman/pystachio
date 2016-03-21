@@ -178,7 +178,3 @@ def test_repr():
   testvaltwo = C([1, 2, 3])
   assert repr(testvalone) == "Choice_String_IntegerList('hello')"
   assert repr(testvaltwo) == "Choice_String_IntegerList([1, 2, 3])"
-
-  testvalthree = OtherStruct(second="hello", first=ChoiceDefaultStruct())
-  assert repr(testvalthree) == ("OtherStruct(second=hello,\n"
-                                "            first=ChoiceDefaultStruct(a=IntOrDumb(Integer(28))))")
