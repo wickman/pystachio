@@ -1,9 +1,7 @@
 # Choice types: types that can take one of a group of selected types.
 
-import json
 
 from .base import Object
-from .basic import SimpleObject
 from .compatibility import Compatibility
 from .typing import Type, TypeCheck, TypeFactory, TypeMetaclass
 
@@ -47,9 +45,6 @@ class ChoiceContainer(Object, Type):
   def __init__(self, val):
     super(ChoiceContainer, self).__init__()
     self._value = val
-
-  def scopes(self):
-    return self._scopes
 
   def get(self):
     return self.unwrap().get()
