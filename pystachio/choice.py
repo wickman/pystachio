@@ -52,10 +52,7 @@ class ChoiceContainer(Object, Type):
     return self._scopes
 
   def get(self):
-    if isinstance(self._value, Object):
-      return self._value.get()
-    else:
-      return self._value
+    return self.unwrap().get()
 
   def unwrap(self):
     """Get the Pystachio value that's wrapped in this choice."""

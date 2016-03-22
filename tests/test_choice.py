@@ -1,6 +1,7 @@
 import json
 
-from pystachio import Choice, Default, Enum, Float, Integer, List, Ref, String, Struct
+from pystachio import Choice, Default, Enum, Float, Integer, List, Ref, Required, String, Struct
+from pystachio.naming import frozendict
 
 
 def test_choice_type():
@@ -178,3 +179,18 @@ def test_repr():
   testvaltwo = C([1, 2, 3])
   assert repr(testvalone) == "Choice_String_IntegerList('hello')"
   assert repr(testvaltwo) == "Choice_String_IntegerList([1, 2, 3])"
+
+def test_get_choice_in_struct():
+    class Foo(Struct):
+         foo = Required(String)
+
+    class Bar(Struct):
+         bar = Required(String)
+
+    Item = Choice("Item", (Foo, Bar))
+
+    class Qux(Struct):
+         item = Choice([String, List(Item)])
+
+    b = Qux(item=[Foo(foo="fubar")])
+    assert b.get() == frozendict({'item': (frozendict({'foo': u'fubar'}),)})
