@@ -19,6 +19,13 @@ class TypeSignature(object):
   """
 
   def __init__(self, cls, required=False, default=Empty):
+    """Create an instance of a type signature.
+    Args:
+        cls (Class): the "type" of the object this signature represents.
+        required (bool):
+        default(object): an instance of the type for a default value. This
+           should be either an instance of cls or something coercable to cls.
+    """
     assert isclass(cls)
     assert issubclass(cls, Object)
     if default is not Empty and not isinstance(default, cls):
@@ -74,6 +81,7 @@ class TypeSignature(object):
 
   @staticmethod
   def wrap(sig):
+    """Convert a Python class into a type signature."""
     if isclass(sig) and issubclass(sig, Object):
       return TypeSignature(sig)
     elif isinstance(sig, TypeSignature):
