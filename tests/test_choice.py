@@ -181,6 +181,27 @@ def test_repr():
   assert repr(testvaltwo) == "Choice_String_IntegerList([1, 2, 3])"
 
 
+def test_choice_in_stache():
+  class Foo(Struct):
+    x = Integer
+
+  class Bar(Struct):
+    a = Choice("StringOrFoo", [Integer, String, Foo])
+    b = String
+
+  stringbar = Bar(a="hello", b="{{a}} world!")
+  assert stringbar.check().ok()
+  assert json.loads(stringbar.json_dumps()) == {'a': 'hello', 'b': 'hello world!'}
+
+  intbar = Bar(a=4, b="{{a}} world!")
+  assert intbar.check().ok()
+  assert json.loads(intbar.json_dumps()) == {'a': 4, 'b': '4 world!'}
+
+  foobar = Bar(a=Foo(x=5), b='{{a}} world!')
+  assert foobar.check().ok()
+  assert json.loads(foobar.json_dumps()) == {'a': {'x': 5}, 'b': 'Foo(x=5) world!'}
+
+
 def test_get_choice_in_struct():
   class Foo(Struct):
     foo = Required(String)

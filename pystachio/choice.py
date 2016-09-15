@@ -59,8 +59,13 @@ class ChoiceContainer(Object, Type):
   def __hash(self):
     return hash(self.get())
 
+  def __unicode__(self):
+    return unicode(self.unwrap())
+
+  def __str__(self):
+    return str(self.unwrap())
+
   def __repr__(self):
-    si, _ = self.interpolate()
     return '%s(%s)' % (self.__class__.__name__,
                        repr(self._value))
 
