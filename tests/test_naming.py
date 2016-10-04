@@ -24,6 +24,16 @@ def test_ref_parsing():
   ref('[a-]').components() == [Ref.Index('a-')]
   ref('[0].a').components() == [Ref.Index('0'), Ref.Dereference('a')]
   ref('[0][a]').components() == [Ref.Index('0'), Ref.Index('a')]
+  ref('[.]').components() == [Ref.Index('.')]
+  ref('[/]').components() == [Ref.Index('/')]
+  ref('[_]').components() == [Ref.Index('_')]
+  ref('[-]').components() == [Ref.Index('-')]
+  ref('[a.b]').components() == [Ref.Index('a.b')]
+  ref('[a/b]').components() == [Ref.Index('a/b')]
+  ref('[a_b]').components() == [Ref.Index('a_b')]
+  ref('[a-b]').components() == [Ref.Index('a-b')]
+  ref('[a/b/c/d]').components() == [Ref.Index('a/b/c/d')]
+  ref('[2.0.a_c/d-e]').components() == [Ref.Index('2.0.a_c/d-e')]
   for refstr in ('[a]b', '[]', '[[a]', 'b[[[', 'a.1', '1.a', '.[a]', '0'):
     with pytest.raises(Ref.InvalidRefError):
       ref(refstr)
