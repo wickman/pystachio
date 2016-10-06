@@ -56,7 +56,7 @@ class Ref(object):
   # ref re
   # ^[^\d\W]\w*\Z
   _DEREF_RE = r'[^\d\W]\w*'
-  _INDEX_RE = r'[\w\-]+'
+  _INDEX_RE = r'[\w\-\./]+'
   _REF_RE = re.compile(r'(\.' + _DEREF_RE + r'|\[' + _INDEX_RE + r'\])')
   _VALID_START = re.compile(r'[a-zA-Z_]')
   _COMPONENT_SEPARATOR = '.'
@@ -82,7 +82,7 @@ class Ref(object):
       return self.value > other.value
 
   class Index(Component):
-    RE = re.compile('^[\w\-]+$')
+    RE = re.compile('^[\w\-\./]+$')
 
     def __repr__(self):
       return '[%s]' % self._value
