@@ -241,7 +241,7 @@ class MapContainer(Object, Namable, Type):
     if self.VALUETYPE.serialize_type() != other.VALUETYPE.serialize_type(): return False
     si, _ = self.interpolate()
     oi, _ = other.interpolate()
-    return si._map == oi._map
+    return si.get() == oi.get()
 
   def check(self):
     assert isinstance(self._map, tuple)

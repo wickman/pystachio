@@ -14,6 +14,18 @@ class frozendict(dict):
   def __eq__(self, other):
     return self.__key() == other.__key()
 
+  def __lt__(self, other):
+    return self.__key() < other.__key()
+
+  def __le__(self, other):
+    return self.__key() <= other.__key()
+
+  def __gt__(self, other):
+    return self.__key() > other.__key()
+
+  def __ge__(self, other):
+    return self.__key() >= other.__key()
+
   def __repr__(self):
     return 'frozendict(%s)' % dict.__repr__(self)
 
