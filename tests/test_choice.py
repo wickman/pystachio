@@ -216,3 +216,39 @@ def test_get_choice_in_struct():
 
   b = Qux(item=[Foo(foo="fubar")])
   assert b.get() == frozendict({'item': (frozendict({'foo': u'fubar'}),)})
+
+
+def test_choice_of_structs():
+  class Foo(Struct):
+    foo = Required(String)
+
+  class Bar(Struct):
+    bar = Required(String)
+
+  class Stuff(Struct):
+    item = Required(Choice((Foo, Bar)))
+
+  thing_one = Stuff(item={ 'foo': 'a' })
+  assert thing_one.get() == frozendict({ 'item': frozendict({ 'foo': u'a' }) })
+
+  thing_two = Stuff(item={ 'bar': 'b' })
+  assert thing_two.get() == frozendict({ 'item': frozendict({ 'bar': u'b' }) })
+
+
+def test_list_choice_of_structs():
+  class Foo(Struct):
+    foo = Required(String)
+
+  class Bar(Struct):
+    bar = Required(String)
+
+  class Stuff(Struct):
+    items = Required(List(Choice((Foo, Bar))))
+
+  stuff = Stuff(items=[{ 'foo': 'a' }, { 'bar': 'b' }])
+  assert stuff.get() == frozendict({
+    'items': (
+      frozendict({ 'foo': u'a' }),
+      frozendict({ 'bar': u'b' })
+    )
+  })

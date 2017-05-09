@@ -102,7 +102,7 @@ class ChoiceContainer(Object, Type):
           ret = ret_fun(o)
           if ret:
             return ret
-        except (self.CoercionError, ValueError):
+        except (self.CoercionError, ValueError, AttributeError):
           pass
     return err_fun(self._value)
 
