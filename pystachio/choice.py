@@ -56,7 +56,7 @@ class ChoiceContainer(Object, Type):
   def dup(self):
     return self.__class__(self._value)
 
-  def __hash(self):
+  def __hash__(self):
     return hash(self.get())
 
   def __unicode__(self):

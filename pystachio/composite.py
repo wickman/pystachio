@@ -50,6 +50,13 @@ class TypeSignature(object):
     else:
       return TypeSignature(real_class, required=req)
 
+  def __hash__(self):
+    return hash(
+      self.klazz.serialize_type(),
+      self.required,
+      self.default,
+      self.empty)
+
   def __eq__(self, other):
     return (self.klazz.serialize_type() == other.klazz.serialize_type() and
             self.required == other.required and
@@ -190,6 +197,9 @@ class Structural(Object, Type, Namable):
     new_self = self.copy()
     new_self._update_schema_data(**copy.copy(kw))
     return new_self
+
+  def __hash__(self):
+    return hash(self.get())
 
   def __eq__(self, other):
     if not isinstance(other, Structural): return False

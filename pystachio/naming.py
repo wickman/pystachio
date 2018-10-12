@@ -14,6 +14,9 @@ class frozendict(dict):
   def __eq__(self, other):
     return self.__key() == other.__key()
 
+  def __ne__(self, other):
+    return self.__key() != other.__key()
+
   def __repr__(self):
     return 'frozendict(%s)' % dict.__repr__(self)
 
@@ -68,6 +71,9 @@ class Ref(object):
     @property
     def value(self):
       return self._value
+
+    def __hash__(self):
+      return hash(self.value)
 
     def __eq__(self, other):
       return self.__class__ == other.__class__ and self.value == other.value
@@ -185,6 +191,9 @@ class Ref(object):
 
   def __eq__(self, other):
     return self.components() == other.components()
+
+  def __ne__(self, other):
+    return self.components() != other.components()
 
   @staticmethod
   def compare(self, other):
