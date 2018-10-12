@@ -75,11 +75,11 @@ class ChoiceContainer(Object, Type):
     if len(self.CHOICES) != len(other.CHOICES):
       return False
     for myalt, otheralt in zip(self.CHOICES, other.CHOICES):
-      if myalt.serialize_type() != other.serialize_type():
+      if myalt.serialize_type() != otheralt.serialize_type():
         return False
     si, _ = self.interpolate()
     oi, _ = other.interpolate()
-    return si._value == other._value
+    return si._value == oi._value
 
   def _unwrap(self, ret_fun, err_fun):
     """Iterate over the options in the choice type, and try to perform some
