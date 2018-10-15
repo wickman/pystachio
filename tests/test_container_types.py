@@ -90,6 +90,9 @@ def test_list_find():
 
 def test_equals():
   assert List(Integer)([1, "{{wut}}"]).bind(wut=23) == List(Integer)([1, 23])
+  assert not List(Integer)([1, 2]) == List(Integer)([1, 3])
+  assert List(Integer)([1, 2]) != List(Integer)([1, 3])
+  assert not List(Integer)([1, "{{wut}}"]).bind(wut=23) != List(Integer)([1, 23])
 
 def test_basic_maps():
   assert Map(String,Integer)({}).check().ok()

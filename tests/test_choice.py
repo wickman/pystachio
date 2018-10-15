@@ -14,6 +14,11 @@ def test_choice_type():
   assert two == IntStr("123")
   assert three == IntStr("abc")
 
+  assert one == two
+  assert not one == three
+  assert one != three
+  assert not one != two
+
   assert one.unwrap() == Integer(123)
   assert two.unwrap() == Integer(123)
   assert three.unwrap() == String("abc")

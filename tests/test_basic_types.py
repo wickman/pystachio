@@ -113,12 +113,18 @@ def test_cmp():
   assert Integer(1) < Integer(2)
   assert Integer(2) > Integer(1)
   assert Integer(1) == Integer(1)
+  assert not Integer(1) == Integer(2)
+  assert Integer(1) != Integer(2)
+  assert not Integer(1) != Integer(1)
   assert String("a") < String("b")
   assert String("a") == String("a")
   assert String("b") > String("a")
   assert Float(1) < Float(2)
   assert Float(2) > Float(1)
   assert Float(1) == Float(1)
+  assert not Float(1) == Float(1.1)
+  assert Float(1) != Float(1.1)
+  assert not Float(1) != Float(1)
   assert Float(1.1) > Float(1)
 
   # all types <
