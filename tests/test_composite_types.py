@@ -71,6 +71,9 @@ def test_defaults():
     cpu = Default(Float, 1.0)
     ram = Integer
   assert Resources() == Resources(cpu = 1.0)
+  assert not Resources() == Resources(cpu = 2.0)
+  assert Resources() != Resources(cpu = 2.0)
+  assert not Resources() != Resources(cpu = 1.0)
   assert Resources(cpu = 2.0)._schema_data['cpu'] == Float(2.0)
 
   class Process(Struct):
@@ -234,3 +237,25 @@ def test_self_super():
   parent = Parent(child=Child(value=23), value='{{self.child.value}}')
   parent, _ = parent.interpolate()
   assert parent.child().value().get() == 23
+
+
+def test_hashing():
+  class Resources(Struct):
+    cpu = Float
+    ram = Integer
+  class Process(Struct):
+    name = String
+    resources = Resources
+
+  map = {
+    Resources(): 'foo',
+    Process(): 'bar',
+    Resources(cpu=1.1): 'baz',
+    Process(resources=Resources(cpu=1.1)): 'derp'
+  }
+  assert Resources() in map
+  assert Process() in map
+  assert Resources(cpu=1.1) in map
+  assert Resources(cpu=2.2) not in map
+  assert Process(resources=Resources(cpu=1.1)) in map
+  assert Process(resources=Resources(cpu=2.2)) not in map

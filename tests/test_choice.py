@@ -9,6 +9,16 @@ def test_choice_type():
   one = IntStr(123)
   two = IntStr("123")
   three = IntStr("abc")
+
+  assert one == IntStr(123)
+  assert two == IntStr("123")
+  assert three == IntStr("abc")
+
+  assert one == two
+  assert not one == three
+  assert one != three
+  assert not one != two
+
   assert one.unwrap() == Integer(123)
   assert two.unwrap() == Integer(123)
   assert three.unwrap() == String("abc")
@@ -216,3 +226,19 @@ def test_get_choice_in_struct():
 
   b = Qux(item=[Foo(foo="fubar")])
   assert b.get() == frozendict({'item': (frozendict({'foo': u'fubar'}),)})
+
+
+def test_hashing():
+  IntStr = Choice("IntStrFloat", (Integer, String))
+
+  map = {
+    IntStr(123): 'foo',
+    IntStr("123"): 'bar',
+    IntStr("abc"): 'baz'
+  }
+  assert IntStr(123) in map
+  assert IntStr("123") in map
+  assert IntStr("abc") in map
+  assert IntStr(456) not in map
+  assert IntStr("456") not in map
+  assert IntStr("def") not in map
