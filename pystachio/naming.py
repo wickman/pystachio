@@ -124,7 +124,7 @@ class Ref(object):
     return Ref(components)
 
   def __init__(self, components):
-    self._components = components
+    self._components = tuple(components)
 
   def components(self):
     return self._components
@@ -211,4 +211,4 @@ class Ref(object):
     return Ref.compare(self, other) == 1
 
   def __hash__(self):
-    return hash(str(self))
+    return hash(self.components())
