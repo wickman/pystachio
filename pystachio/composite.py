@@ -230,11 +230,12 @@ class Structural(Object, Type, Namable):
     return lambda: self.interpolate_key(attr)
 
   def check(self):
+    scopes = self.scopes()
     for name, signature in self.TYPEMAP.items():
       if self._schema_data[name] is Empty and signature.required:
         return TypeCheck.failure('%s[%s] is required.' % (self.__class__.__name__, name))
       elif self._schema_data[name] is not Empty:
-        type_check = self._schema_data[name].in_scope(*self.scopes()).check()
+        type_check = self._schema_data[name].in_scope(*scopes).check()
         if type_check.ok():
           continue
         else:

@@ -85,9 +85,10 @@ class ListContainer(Object, Namable, Type):
 
   def check(self):
     assert ListContainer.isiterable(self._values)
+    scopes = self.scopes()
     for element in self._values:
       assert isinstance(element, self.TYPE)
-      typecheck = element.in_scope(*self.scopes()).check()
+      typecheck = element.in_scope(*scopes).check()
       if not typecheck.ok():
         return TypeCheck.failure("Element in %s failed check: %s" % (self.__class__.__name__,
           typecheck.message()))
@@ -96,8 +97,9 @@ class ListContainer(Object, Namable, Type):
   def interpolate(self):
     unbound = set()
     interpolated = []
+    scopes = self.scopes()
     for element in self._values:
-      einterp, eunbound = element.in_scope(*self.scopes()).interpolate()
+      einterp, eunbound = element.in_scope(*scopes).interpolate()
       interpolated.append(einterp)
       unbound.update(eunbound)
     return self.__class__(interpolated), list(unbound)
@@ -245,11 +247,12 @@ class MapContainer(Object, Namable, Type):
 
   def check(self):
     assert isinstance(self._map, tuple)
+    scopes = self.scopes()
     for key, value in self._map:
       assert isinstance(key, self.KEYTYPE)
       assert isinstance(value, self.VALUETYPE)
-      keycheck = key.in_scope(*self.scopes()).check()
-      valuecheck = value.in_scope(*self.scopes()).check()
+      keycheck = key.in_scope(*scopes).check()
+      valuecheck = value.in_scope(*scopes).check()
       if not keycheck.ok():
         return TypeCheck.failure("%s key %s failed check: %s" % (self.__class__.__name__,
           key, keycheck.message()))
@@ -261,9 +264,10 @@ class MapContainer(Object, Namable, Type):
   def interpolate(self):
     unbound = set()
     interpolated = []
+    scopes = self.scopes()
     for key, value in self._map:
-      kinterp, kunbound = key.in_scope(*self.scopes()).interpolate()
-      vinterp, vunbound = value.in_scope(*self.scopes()).interpolate()
+      kinterp, kunbound = key.in_scope(*scopes).interpolate()
+      vinterp, vunbound = value.in_scope(*scopes).interpolate()
       unbound.update(kunbound)
       unbound.update(vunbound)
       interpolated.append((kinterp, vinterp))
@@ -273,15 +277,16 @@ class MapContainer(Object, Namable, Type):
     if not ref.is_index():
       raise Namable.NamingError(self, ref)
     kvalue = self.KEYTYPE(ref.action().value)
+    scopes = self.scopes()
     for key, namable in self._map:
       if kvalue == key:
         if ref.rest().is_empty():
-          return namable.in_scope(*self.scopes())
+          return namable.in_scope(*scopes)
         else:
           if not isinstance(namable, Namable):
             raise Namable.Unnamable(namable)
           else:
-            return namable.in_scope(*self.scopes()).find(ref.rest())
+            return namable.in_scope(*scopes).find(ref.rest())
     raise Namable.NotFound(self, ref)
 
   @classmethod
