@@ -163,6 +163,7 @@ def test_choice_primlist():
   """Test that choices with a list value work correctly."""
   C = Choice([String, List(Integer)])
   c = C([1, 2, 3])
+  assert c == C([1, 2, 3])
   assert c.check().ok()
   c = C("hello")
   assert c.check().ok()

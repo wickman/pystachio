@@ -79,7 +79,7 @@ class ChoiceContainer(Object, Type):
         return False
     si, _ = self.interpolate()
     oi, _ = other.interpolate()
-    return si._value == oi._value
+    return si == oi
 
   def _unwrap(self, ret_fun, err_fun):
     """Iterate over the options in the choice type, and try to perform some
