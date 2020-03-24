@@ -157,6 +157,14 @@ class StructMetaclass(type):
     else:
       return type.__new__(mcs, name, parents, attributes)
 
+class IsNotMappingError(ValueError):
+  """Raised when a composite argument is not a Mapping"""
+
+  def __init__(self, arg):
+    self.arg = arg
+
+  def __repr__(self):
+    return 'IsNotMappingError({!r})'.format(self.arg)
 
 StructMetaclassWrapper = StructMetaclass('StructMetaclassWrapper', (object,), {})
 class Structural(Object, Type, Namable):
@@ -167,7 +175,7 @@ class Structural(Object, Type, Namable):
     self._schema_data = frozendict((attr, value.default) for (attr, value) in self.TYPEMAP.items())
     for arg in args:
       if not isinstance(arg, Mapping):
-        raise ValueError('Expected dictionary argument, got %s' % repr(arg))
+        raise IsNotMappingError(arg)
       self._update_schema_data(**arg)
     self._update_schema_data(**copy.copy(kw))
     super(Structural, self).__init__()
