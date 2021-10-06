@@ -153,6 +153,9 @@ class StructMetaclass(type):
   def __new__(mcs, name, parents, attributes):
     if any(parent.__name__ == 'Struct' for parent in parents):
       type_parameters = StructMetaclass.attributes_to_parameters(attributes)
+      class_cell = attributes.pop('__classcell__', None)
+      if class_cell is not None:
+        type_parameters['__classcell__'] = class_cell
       return TypeFactory.new({}, 'Struct', name, type_parameters)
     else:
       return type.__new__(mcs, name, parents, attributes)
