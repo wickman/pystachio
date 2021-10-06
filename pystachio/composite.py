@@ -132,8 +132,11 @@ class StructFactory(TypeFactory):
     for param in parameters:
       assert isinstance(param, tuple)
     typemap = dict((attr, TypeSignature.deserialize(param, type_dict))
-                   for attr, param in parameters)
+                   for attr, param in parameters if attr != '__classcell__')
     attributes = {'TYPEMAP': typemap}
+    attrs = dict(parameters)
+    if '__classcell__' in attrs:
+      attributes['__classcell__'] = attrs['__classcell__']
     return TypeMetaclass(str(name), (Structural,), attributes)
 
 
@@ -153,6 +156,9 @@ class StructMetaclass(type):
   def __new__(mcs, name, parents, attributes):
     if any(parent.__name__ == 'Struct' for parent in parents):
       type_parameters = StructMetaclass.attributes_to_parameters(attributes)
+      class_cell = attributes.pop('__classcell__', None)
+      if class_cell is not None:
+        type_parameters = type_parameters + (('__classcell__', class_cell),)
       return TypeFactory.new({}, 'Struct', name, type_parameters)
     else:
       return type.__new__(mcs, name, parents, attributes)
