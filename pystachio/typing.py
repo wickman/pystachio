@@ -78,11 +78,7 @@ class TypeFactory(TypeFactoryClass):
     """
       Create a fully reified type from a type schema.
     """
-    if len(type_parameters) == 2:
-      name, signature = type_parameters
-      type_tuple = (type_factory,) + tuple((name, tuple([param for param in signature if param[0] != '__classcell__'])))
-    else:
-      type_tuple = (type_factory,) + type_parameters
+    type_tuple = str((type_factory,) + type_parameters)
     if type_tuple not in type_dict:
       factory = TypeFactory.get_factory(type_factory)
       reified_type = factory.create(type_dict, *type_parameters)
