@@ -115,7 +115,7 @@ class StructFactory(TypeFactory):
   PROVIDES = 'Struct'
 
   @staticmethod
-  def create(type_dict, *type_parameters):
+  def create(type_dict, *type_parameters, class_cell=None):
     """
       StructFactory.create(*type_parameters) expects:
 
@@ -127,16 +127,16 @@ class StructFactory(TypeFactory):
          (attribute_name2, attribute_sig2 ...),
          ...
          (attribute_nameN, ...))
+        class_cell inherited from StructMetaclass
     """
     name, parameters = type_parameters
     for param in parameters:
       assert isinstance(param, tuple)
     typemap = dict((attr, TypeSignature.deserialize(param, type_dict))
-                   for attr, param in parameters if attr != '__classcell__')
+                   for attr, param in parameters)
     attributes = {'TYPEMAP': typemap}
-    attrs = dict(parameters)
-    if '__classcell__' in attrs:
-      attributes['__classcell__'] = attrs['__classcell__']
+    if class_cell:
+      attributes['__classcell__'] = class_cell
     return TypeMetaclass(str(name), (Structural,), attributes)
 
 
@@ -156,10 +156,7 @@ class StructMetaclass(type):
   def __new__(mcs, name, parents, attributes):
     if any(parent.__name__ == 'Struct' for parent in parents):
       type_parameters = StructMetaclass.attributes_to_parameters(attributes)
-      class_cell = attributes.pop('__classcell__', None)
-      if class_cell is not None:
-        type_parameters = type_parameters + (('__classcell__', class_cell),)
-      return TypeFactory.new({}, 'Struct', name, type_parameters)
+      return TypeFactory.new({}, 'Struct', name, type_parameters, class_cell=attributes.pop('__classcell__', None))
     else:
       return type.__new__(mcs, name, parents, attributes)
 
