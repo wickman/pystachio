@@ -259,3 +259,9 @@ def test_hashing():
   assert Resources(cpu=2.2) not in map
   assert Process(resources=Resources(cpu=1.1)) in map
   assert Process(resources=Resources(cpu=2.2)) not in map
+
+def test_super():
+  class Monitor(Struct):
+
+    def json_dumps(self):
+      return super(Monitor, self).json_dumps()
