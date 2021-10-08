@@ -63,7 +63,7 @@ class TypeFactory(TypeFactoryClass):
     return TypeFactoryType._TYPE_FACTORIES[type_name]
 
   @staticmethod
-  def create(type_dict, *type_parameters):
+  def create(type_dict, *type_parameters, **kwargs):
     """
       Implemented by the TypeFactory to produce a new type.
 
@@ -74,14 +74,14 @@ class TypeFactory(TypeFactoryClass):
     raise NotImplementedError("create unimplemented for: %s" % repr(type_parameters))
 
   @staticmethod
-  def new(type_dict, type_factory, *type_parameters):
+  def new(type_dict, type_factory, *type_parameters, **kwargs):
     """
       Create a fully reified type from a type schema.
     """
     type_tuple = (type_factory,) + type_parameters
     if type_tuple not in type_dict:
       factory = TypeFactory.get_factory(type_factory)
-      reified_type = factory.create(type_dict, *type_parameters)
+      reified_type = factory.create(type_dict, *type_parameters, **kwargs)
       type_dict[type_tuple] = reified_type
     return type_dict[type_tuple]
 
