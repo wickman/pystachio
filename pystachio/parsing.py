@@ -73,7 +73,8 @@ class MustacheParser(object):
 
   @classmethod
   def resolve(cls, stream, *namables):
-    def iterate(st, keep_aliases=True, found_refs=dict()):
+    found_refs = dict()
+    def iterate(st, keep_aliases=True):
       refs = cls.split(st, keep_aliases=keep_aliases)
       unbound = [ref for ref in refs if isinstance(ref, Ref)]
       repl, interps = cls.join(refs, *namables, found_refs=found_refs)
