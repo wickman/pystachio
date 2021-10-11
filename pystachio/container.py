@@ -3,7 +3,6 @@ from collections import Iterable, Mapping, Sequence
 from inspect import isclass
 
 from .base import Object
-from .compatibility import Compatibility
 from .naming import Namable, frozendict
 from .typing import Type, TypeCheck, TypeFactory, TypeMetaclass
 
@@ -20,7 +19,7 @@ class ListFactory(TypeFactory):
     klazz = TypeFactory.new(type_dict, *type_parameters[0])
     assert isclass(klazz)
     assert issubclass(klazz, Object)
-    return TypeMetaclass('%sList' % klazz.__name__, (ListContainer,), {'TYPE': klazz})
+    return TypeMetaclass('%sList' % klazz.__name__, (ListContainer,), {'TYPE': klazz, 'TYPE_PARAMETERS': (klazz.serialize_type(),)})
 
 
 class ListContainer(Object, Namable, Type):
@@ -48,7 +47,7 @@ class ListContainer(Object, Namable, Type):
   def __repr__(self):
     si, _ = self.interpolate()
     return '%s(%s)' % (self.__class__.__name__,
-      ', '.join(str(v) if Compatibility.PY3 else unicode(v) for v in si._values))
+      ', '.join(str(v) for v in si._values))
 
   def __iter__(self):
     si, _ = self.interpolate()
@@ -74,7 +73,7 @@ class ListContainer(Object, Namable, Type):
 
   @staticmethod
   def isiterable(values):
-    return isinstance(values, Sequence) and not isinstance(values, Compatibility.stringy)
+    return isinstance(values, Sequence) and not isinstance(values, str)
 
   def _coerce_values(self, values):
     if not ListContainer.isiterable(values):
@@ -129,7 +128,7 @@ class ListContainer(Object, Namable, Type):
 
   @classmethod
   def type_parameters(cls):
-    return (cls.TYPE.serialize_type(),)
+    return cls.TYPE_PARAMETERS
 
 List = TypeFactory.wrapper(ListFactory)
 
@@ -146,7 +145,7 @@ class MapFactory(TypeFactory):
     assert isclass(key_klazz) and isclass(value_klazz)
     assert issubclass(key_klazz, Object) and issubclass(value_klazz, Object)
     return TypeMetaclass('%s%sMap' % (key_klazz.__name__, value_klazz.__name__), (MapContainer,),
-      {'KEYTYPE': key_klazz, 'VALUETYPE': value_klazz})
+      {'KEYTYPE': key_klazz, 'VALUETYPE': value_klazz, 'TYPE_PARAMETERS': (key_klazz.serialize_type(), value_klazz.serialize_type())})
 
 
 # TODO(wickman) Technically it's possible to do the following:
@@ -295,7 +294,6 @@ class MapContainer(Object, Namable, Type):
 
   @classmethod
   def type_parameters(cls):
-    return (cls.KEYTYPE.serialize_type(), cls.VALUETYPE.serialize_type())
-
+    return cls.TYPE_PARAMETERS
 
 Map = TypeFactory.wrapper(MapFactory)

@@ -1,7 +1,6 @@
 import copy
 from pprint import pformat
 
-from .compatibility import Compatibility
 from .naming import Namable, Ref
 from .parsing import MustacheParser
 from .typing import TypeCheck
@@ -20,7 +19,7 @@ class Environment(Namable):
     elif isinstance(value, (Environment, Object)):
       return value
     else:
-      if isinstance(value, Compatibility.numeric + Compatibility.stringy):
+      if isinstance(value, (int, float, str)):
         return str(value)
       else:
         raise ValueError(

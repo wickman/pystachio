@@ -1,7 +1,6 @@
 import copy
 import re
 
-from .compatibility import Compatibility
 from .naming import Ref
 
 try:
@@ -37,7 +36,7 @@ class Matcher(object):
     if root is None:
       self._components = []
       return
-    if not isinstance(root, Compatibility.stringy) and root is not Any:
+    if not isinstance(root, str) and root is not Any:
       raise ValueError('Invalid root match value: %s' % root)
     self._components = [Ref.Dereference(self.escape('.*' if root is Any else root))]
 

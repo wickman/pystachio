@@ -1,8 +1,6 @@
 import os
 from functools import reduce
 
-from .compatibility import Compatibility
-
 try:
   import pkg_resources
 except ImportError:
@@ -11,6 +9,12 @@ except ImportError:
 
 def relativize(from_path, include_path):
   return os.path.join(os.path.dirname(from_path), include_path)
+
+
+def exec_function(ast, globals_map):
+    locals_map = globals_map
+    exec(ast, globals_map, locals_map)
+    return locals_map
 
 
 class ConfigContext(object):
@@ -31,7 +35,7 @@ class ConfigContext(object):
 
   def compile(self, from_path, include_string, data):
     self.loadables[self.key(from_path, include_string)] = data
-    Compatibility.exec_function(compile(data, include_string, 'exec'), self.environment)
+    exec_function(compile(data, include_string, 'exec'), self.environment)
 
 
 class ConfigExecutor(object):
@@ -50,7 +54,7 @@ class ConfigExecutor(object):
 class FileExecutor(ConfigExecutor):
   @classmethod
   def matches(cls, loadable):
-    return isinstance(loadable, Compatibility.stringy) and os.path.isfile(loadable)
+    return isinstance(loadable, str) and os.path.isfile(loadable)
 
   @classmethod
   def compile_into(cls, context, from_path, config_file):
@@ -85,7 +89,7 @@ class ResourceExecutor(FileExecutor):
 
   @classmethod
   def matches(cls, loadable):
-    return isinstance(loadable, Compatibility.stringy) and cls.resource_exists(loadable)
+    return isinstance(loadable, str) and cls.resource_exists(loadable)
 
   @classmethod
   def compile_into(cls, context, from_path, config_file):
@@ -162,7 +166,7 @@ class Config(object):
 
   @classmethod
   def load_schema(cls, environment, schema=None):
-    Compatibility.exec_function(
+    exec_function(
         compile(schema or cls.DEFAULT_SCHEMA, "<exec_function>", "exec"), environment)
 
   def __init__(self, loadable, schema=None):

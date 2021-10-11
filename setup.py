@@ -41,7 +41,7 @@ setup(
     'bin/pystachio_repl'
   ],
   classifiers          = [
-    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: MIT License',
     'Operating System :: OS Independent',
