@@ -1,5 +1,4 @@
 from .base import Object
-from .compatibility import Compatibility
 from .parsing import MustacheParser
 from .typing import Type, TypeCheck, TypeFactory, TypeMetaclass
 
@@ -59,10 +58,10 @@ class SimpleObject(Object, Type):
     return str(si._value)
 
   def __repr__(self):
-    return '%s(%s)' % (self.__class__.__name__, str(self) if Compatibility.PY3 else unicode(self))
+    return '%s(%s)' % (self.__class__.__name__, str(self))
 
   def interpolate(self):
-    if not isinstance(self._value, Compatibility.stringy):
+    if not isinstance(self._value, str):
       return self.__class__(self.coerce(self._value)), []
     else:
       joins, unbound = MustacheParser.resolve(self._value, *self.scopes())
@@ -87,7 +86,7 @@ class String(SimpleObject):
   @classmethod
   def checker(cls, obj):
     assert isinstance(obj, String)
-    if isinstance(obj._value, Compatibility.stringy):
+    if isinstance(obj._value, str):
       return TypeCheck.success()
     else:
       # TODO(wickman)  Perhaps we should mark uninterpolated Mustache objects as
@@ -97,10 +96,9 @@ class String(SimpleObject):
 
   @classmethod
   def coerce(cls, value):
-    ACCEPTED_SOURCE_TYPES = Compatibility.stringy + Compatibility.numeric
-    if not isinstance(value, ACCEPTED_SOURCE_TYPES):
+    if not isinstance(value, (str, int, float)):
       raise cls.CoercionError(value, cls)
-    return str(value) if Compatibility.PY3 else unicode(value)
+    return str(value)
 
 
 class StringFactory(TypeFactory):
@@ -114,15 +112,14 @@ class Integer(SimpleObject):
   @classmethod
   def checker(cls, obj):
     assert isinstance(obj, Integer)
-    if isinstance(obj._value, Compatibility.integer):
+    if isinstance(obj._value, int):
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not an integer" % repr(obj._value))
 
   @classmethod
   def coerce(cls, value):
-    ACCEPTED_SOURCE_TYPES = Compatibility.numeric + Compatibility.stringy
-    if not isinstance(value, ACCEPTED_SOURCE_TYPES):
+    if not isinstance(value, (str, int, float)):
       raise cls.CoercionError(value, cls)
     try:
       return int(value)
@@ -141,15 +138,14 @@ class Float(SimpleObject):
   @classmethod
   def checker(cls, obj):
     assert isinstance(obj, Float)
-    if isinstance(obj._value, Compatibility.real + Compatibility.integer):
+    if isinstance(obj._value, (int, float)):
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not a float" % repr(obj._value))
 
   @classmethod
   def coerce(cls, value):
-    ACCEPTED_SOURCE_TYPES = Compatibility.numeric + Compatibility.stringy
-    if not isinstance(value, ACCEPTED_SOURCE_TYPES):
+    if not isinstance(value, (str, int, float)):
       raise cls.CoercionError(value, cls)
     try:
       return float(value)
@@ -174,13 +170,12 @@ class Boolean(SimpleObject):
 
   @classmethod
   def coerce(cls, value):
-    ACCEPTED_SOURCE_TYPES = (bool,) + Compatibility.numeric + Compatibility.stringy
-    if not isinstance(value, ACCEPTED_SOURCE_TYPES):
+    if not isinstance(value, (bool, str, int, float)):
       raise cls.CoercionError(value, cls)
 
     if isinstance(value, bool):
       return value
-    elif isinstance(value, Compatibility.stringy):
+    elif isinstance(value, str):
       if value.lower() in ("true", "1"):
         return True
       elif value.lower() in ("false", "0"):
@@ -209,7 +204,7 @@ class EnumContainer(SimpleObject):
   @classmethod
   def checker(cls, obj):
     assert isinstance(obj, EnumContainer)
-    if isinstance(obj._value, Compatibility.stringy) and obj._value in cls.VALUES:
+    if isinstance(obj._value, str) and obj._value in cls.VALUES:
       return TypeCheck.success()
     else:
       return TypeCheck.failure("%s not in the enumeration (%s)" % (repr(obj._value),
@@ -217,10 +212,10 @@ class EnumContainer(SimpleObject):
 
   @classmethod
   def coerce(cls, value):
-    if not isinstance(value, Compatibility.stringy) or value not in cls.VALUES:
+    if not isinstance(value, str) or value not in cls.VALUES:
       raise cls.CoercionError(value, cls, '%s is not one of %s' % (
         value, ', '.join(cls.VALUES)))
-    return str(value) if Compatibility.PY3 else unicode(value)
+    return str(value)
 
   @classmethod
   def type_factory(cls):
@@ -243,13 +238,13 @@ class EnumFactory(TypeFactory):
     name, values = type_parameters
     assert isinstance(values, (list, tuple))
     for value in values:
-      assert isinstance(value, Compatibility.stringy)
+      assert isinstance(value, str)
     return TypeMetaclass(str(name), (EnumContainer,), { 'VALUES': values })
 
 
 def Enum(*stuff):
   # TODO(wickman) Check input
-  if len(stuff) == 2 and isinstance(stuff[0], Compatibility.stringy) and (
+  if len(stuff) == 2 and isinstance(stuff[0], str) and (
       isinstance(stuff[1], (list, tuple))):
     name, values = stuff
     return TypeFactory.new({}, EnumFactory.PROVIDES, name, values)

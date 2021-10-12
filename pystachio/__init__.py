@@ -13,6 +13,3 @@ from .container import List, Map
 from .naming import Namable, Ref
 from .parsing import MustacheParser
 from .typing import Type, TypeCheck, TypeFactory
-
-if sys.version_info < (2, 6, 5):
-  raise ImportError("pystachio requires Python >= 2.6.5")

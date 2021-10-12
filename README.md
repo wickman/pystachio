@@ -25,10 +25,7 @@ Notable related projects:
 
 ## Requirements ##
 
-Tested and works in CPython 2.6.7, 2.7.2, 3.2.1 and PyPy 1.6.  Not tested
-pre-2.6.x and will almost certainly not work.  Due to http://bugs.python.org/issue2646,
-serialization to/from json will likely break CPython 2.6.1 and earlier because unicode
-kwargs keys are not supported.
+Tested and works in CPython3 and PyPy3.
 
 ## Overview ##
 

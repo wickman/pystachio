@@ -1,6 +1,5 @@
+from functools import lru_cache
 import re
-
-from .compatibility import Compatibility
 
 
 class frozendict(dict):
@@ -110,9 +109,10 @@ class Ref(object):
       return Ref.from_address(value)
 
   @staticmethod
+  @lru_cache(maxsize=128)
   def from_address(address):
     components = []
-    if not address or not isinstance(address, Compatibility.stringy):
+    if not address or not isinstance(address, str):
       raise Ref.InvalidRefError('Invalid address: %s' % repr(address))
     if not (address.startswith('[') or address.startswith('.')):
       if Ref._VALID_START.match(address[0]):
@@ -125,6 +125,7 @@ class Ref(object):
 
   def __init__(self, components):
     self._components = tuple(components)
+    self._hash = None
 
   def components(self):
     return self._components
@@ -144,12 +145,14 @@ class Ref(object):
   def rest(self):
     return Ref(self.components()[1:])
 
+  @lru_cache(maxsize=128)
   def __add__(self, other):
     sc = self.components()
     oc = other.components()
     return Ref(sc + oc)
 
   @staticmethod
+  @lru_cache(maxsize=10000)
   def subscope(ref1, ref2):
     rc = ref1.components()
     sc = ref2.components()
@@ -211,4 +214,6 @@ class Ref(object):
     return Ref.compare(self, other) == 1
 
   def __hash__(self):
-    return hash(self.components())
+    if not self._hash:
+      self._hash = hash(self.components())
+    return self._hash

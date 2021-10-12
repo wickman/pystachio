@@ -1,8 +1,5 @@
 # Choice types: types that can take one of a group of selected types.
-
-
 from .base import Object
-from .compatibility import Compatibility
 from .typing import Type, TypeCheck, TypeFactory, TypeMetaclass
 
 
@@ -26,12 +23,13 @@ class ChoiceFactory(TypeFactory):
     assert len(type_parameters) == 2
     name = type_parameters[0]
     alternatives = type_parameters[1]
-    assert isinstance(name, Compatibility.stringy)
+    assert isinstance(name, str)
     assert isinstance(alternatives, (list, tuple))
     choice_types = []
     for c in alternatives:
       choice_types.append(TypeFactory.new(type_dict, *c))
-    return TypeMetaclass(str(name), (ChoiceContainer,), {'CHOICES': choice_types})
+    return TypeMetaclass(str(name), (ChoiceContainer,), {'CHOICES': choice_types, 'TYPE_PARAMETERS': (str(name), tuple(t.serialize_type() for t in choice_types))
+})
 
 
 class ChoiceContainer(Object, Type):
@@ -144,8 +142,7 @@ class ChoiceContainer(Object, Type):
 
   @classmethod
   def type_parameters(cls):
-    tup = tuple(t.serialize_type() for t in cls.CHOICES)
-    return (cls.__name__, tup)
+    return cls.TYPE_PARAMETERS
 
   @classmethod
   def serialize_type(cls):
@@ -166,7 +163,7 @@ def Choice(*args):
   else:
     name = "Choice_" + "_".join(a.__name__ for a in args[0])
     alternatives = args[0]
-  assert isinstance(name, Compatibility.stringy)
+  assert isinstance(name, str)
   assert all(issubclass(t, Type) for t in alternatives)
   return TypeFactory.new({}, ChoiceFactory.PROVIDES, name,
                          tuple(t.serialize_type() for t in alternatives))

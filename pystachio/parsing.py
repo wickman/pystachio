@@ -1,6 +1,5 @@
 import re
 
-from .compatibility import Compatibility
 from .naming import Namable, Ref
 
 
@@ -42,7 +41,7 @@ class MustacheParser(object):
     return outsplits
 
   @classmethod
-  def join(cls, splits, *namables):
+  def join(cls, splits, *namables, found_refs = dict()):
     """
       Interpolate strings.
 
@@ -56,29 +55,29 @@ class MustacheParser(object):
     unbound = []
     for ref in splits:
       if isinstance(ref, Ref):
-        resolved = False
-        for namable in namables:
-          try:
-            value = namable.find(ref)
-            resolved = True
-            break
-          except Namable.Error:
-            continue
-        if resolved:
-          isplits.append(value)
+        if ref not in found_refs:
+          for namable in namables:
+            try:
+              found_refs[ref] = namable.find(ref)
+              break
+            except Namable.Error:
+              continue
+        if ref in found_refs:
+          isplits.append(found_refs[ref])
         else:
           isplits.append(ref)
           unbound.append(ref)
       else:
         isplits.append(ref)
-    return (''.join(map(str if Compatibility.PY3 else unicode, isplits)), unbound)
+    return (''.join(map(str, isplits)), unbound)
 
   @classmethod
   def resolve(cls, stream, *namables):
+    found_refs = dict()
     def iterate(st, keep_aliases=True):
       refs = cls.split(st, keep_aliases=keep_aliases)
       unbound = [ref for ref in refs if isinstance(ref, Ref)]
-      repl, interps = cls.join(refs, *namables)
+      repl, interps = cls.join(refs, *namables, found_refs=found_refs)
       return repl, interps, unbound
 
     for _ in range(cls.MAX_ITERATIONS):
