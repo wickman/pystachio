@@ -1,6 +1,6 @@
 import copy
 import json
-from collections import Mapping
+from collections.abc import Mapping
 from inspect import isclass
 
 from .base import Environment, Object

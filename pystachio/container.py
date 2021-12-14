@@ -1,5 +1,5 @@
 import copy
-from collections import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from inspect import isclass
 
 from .base import Object
