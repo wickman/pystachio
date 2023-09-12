@@ -87,13 +87,13 @@ class Ref(object):
       return self.value > other.value
 
   class Index(Component):
-    RE = re.compile('^[\w\-\./]+$')
+    RE = re.compile(r'^[\w\-\./]+$')
 
     def __repr__(self):
       return '[%s]' % self._value
 
   class Dereference(Component):
-    RE = re.compile('^[^\d\W]\w*$')
+    RE = re.compile(r'^[^\d\W]\w*$')
 
     def __repr__(self):
       return '.%s' % self._value
